@@ -783,10 +783,33 @@
 <div class="actions no-print">
 <button class="secondary" onclick="go(4)" type="button">Zurück</button>
 <button class="secondary" onclick="saveTransferOnly()" type="button">Speichern</button>
+<button class="secondary" onclick="openTransferEmail()" type="button">✉ Per E-Mail senden</button>
 <button class="primary" onclick="saveTransferAndPrint()" type="button">Speichern &amp; drucken</button>
 </div>
 </section>
 </div></div>
+<div class="impressum-overlay hidden" id="transferEmailOverlay" onclick="if(event.target===this) closeTransferEmail()">
+  <div class="impressum-modal" style="max-width:560px;">
+    <div class="impressum-head">
+      <div>
+        <h2>Übergabe per E-Mail</h2>
+        <div style="color:#777;font-size:13px;margin-top:4px;">Das Übergabeprotokoll kann an einen Empfänger gesendet werden.</div>
+      </div>
+      <button class="impressum-close" type="button" onclick="closeTransferEmail()">Schließen</button>
+    </div>
+    <label for="transferEmailRecipient">E-Mail-Adresse</label>
+    <input id="transferEmailRecipient" type="email" placeholder="name@beispiel.de" autocomplete="email">
+    <label for="transferEmailSubject">Betreff</label>
+    <input id="transferEmailSubject" type="text" value="ÜbergabeCheck – Übergabeprotokoll">
+    <div class="notice" style="margin-top:14px;">Der E-Mail-Versand ist vorbereitet. Der PDF-Anhang wird aktiviert, sobald die ÜbergabeCheck-Domain bei Resend verifiziert ist.</div>
+    <div class="actions">
+      <button class="secondary" type="button" onclick="closeTransferEmail()">Abbrechen</button>
+      <button class="primary" id="transferEmailSendButton" type="button" onclick="sendTransferEmail()">E-Mail senden</button>
+    </div>
+    <div id="transferEmailError" class="login-error hidden"></div>
+  </div>
+</div>
+
 <div class="impressum-overlay hidden" id="impressumOverlay" onclick="if(event.target===this) closeImpressum()">
 <div aria-labelledby="impressumTitle" aria-modal="true" class="impressum-modal" role="dialog">
 <div class="impressum-head">
@@ -1334,6 +1357,44 @@ async function saveTransferAndPrint(){
   };
 
   setTimeout(()=>window.print(),150);
+}
+
+async function openTransferEmail(){
+  const address=document.getElementById("address")?.value.trim() || "";
+  const subject=document.getElementById("transferEmailSubject");
+  if(subject) subject.value=address ? `ÜbergabeCheck – Übergabeprotokoll – ${address}` : "ÜbergabeCheck – Übergabeprotokoll";
+  document.getElementById("transferEmailError")?.classList.add("hidden");
+  document.getElementById("transferEmailOverlay")?.classList.remove("hidden");
+  document.getElementById("transferEmailRecipient")?.focus();
+}
+
+function closeTransferEmail(){
+  document.getElementById("transferEmailOverlay")?.classList.add("hidden");
+}
+
+async function sendTransferEmail(){
+  const recipient=document.getElementById("transferEmailRecipient")?.value.trim() || "";
+  const subject=document.getElementById("transferEmailSubject")?.value.trim() || "ÜbergabeCheck – Übergabeprotokoll";
+  const button=document.getElementById("transferEmailSendButton");
+  const error=document.getElementById("transferEmailError");
+  if(!recipient || !recipient.includes("@")){ if(error){error.textContent="Bitte eine gültige E-Mail-Adresse eingeben.";error.classList.remove("hidden");} return; }
+  if(!supabaseClient){ if(error){error.textContent="Der E-Mail-Dienst ist aktuell nicht verfügbar.";error.classList.remove("hidden");} return; }
+  if(button){button.disabled=true;button.textContent="Wird gesendet …";}
+  try{
+    const address=document.getElementById("address")?.value.trim() || "";
+    const summaryText=document.getElementById("summary")?.innerText?.trim() || "";
+    const message=["Hallo,","","hier kommt die Übergabedokumentation von ÜbergabeCheck.",address?"Objekt/Wohnung: "+address:"","",summaryText,"","Viele Grüße","ÜbergabeCheck Business"].filter(Boolean).join("\n");
+    const {data,error:invokeError}=await supabaseClient.functions.invoke("send-transfer-email",{body:{to:recipient,subject,message}});
+    if(invokeError) throw invokeError;
+    if(data?.error) throw new Error(data.error);
+    closeTransferEmail();
+    alert("E-Mail wurde versendet.");
+  }catch(err){
+    console.error("E-Mail-Versand:",err);
+    if(error){error.textContent="Die E-Mail konnte noch nicht versendet werden. Bitte prüfe die Resend-Domain.";error.classList.remove("hidden");}
+  }finally{
+    if(button){button.disabled=false;button.textContent="E-Mail senden";}
+  }
 }
 
 function showSummary(){
