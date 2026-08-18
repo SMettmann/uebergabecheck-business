@@ -316,6 +316,7 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script data-domains="smettmann.github.io" data-website-id="a4c18987-08e8-480c-a3e7-a19b50232683" defer="" src="https://cloud.umami.is/script.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -780,11 +781,12 @@
 <h2>5. Übergabeprotokoll</h2>
 <div class="sub">Deine Angaben als übersichtliche Dokumentation.</div>
 <div id="summary"></div>
-<div class="actions no-print">
+<div class="actions no-print" style="justify-content:flex-end;flex-wrap:wrap;">
 <button class="secondary" onclick="go(4)" type="button">Zurück</button>
-<button class="secondary" onclick="saveTransferOnly()" type="button">Speichern</button>
+<button class="secondary" onclick="saveTransferOnly()" type="button">Übergabe speichern</button>
 <button class="secondary" onclick="openTransferEmail()" type="button">✉ Per E-Mail senden</button>
-<button class="primary" onclick="saveTransferAndPrint()" type="button">Speichern &amp; drucken</button>
+<button class="secondary" onclick="saveTransferPdf()" type="button">PDF speichern</button>
+<button class="primary" onclick="printTransfer()" type="button">Drucken</button>
 </div>
 </section>
 </div></div>
@@ -1342,20 +1344,61 @@ async function saveTransferOnly(){
   returnToBusinessDashboard();
 }
 
-async function saveTransferAndPrint(){
+async function saveTransferPdf(){
   const ok=await persistCurrentTransfer();
   if(!ok) return;
 
-  // Das Browser-Druckfenster ist der zuverlässige Weg, um das fertige
-  // Protokoll direkt als PDF zu speichern oder auszudrucken.
-  const oldTitle=document.title;
-  document.title="Übergabeprotokoll";
-  window.onafterprint=()=>{
-    window.onafterprint=null;
-    document.title=oldTitle;
-    returnToBusinessDashboard();
-  };
+  if(typeof html2pdf === "undefined"){
+    alert("PDF-Speicherung ist gerade nicht verfügbar. Bitte Seite neu laden.");
+    return;
+  }
 
+  const protocol=document.querySelector(".protocol");
+  if(!protocol) return;
+
+  const clone=protocol.cloneNode(true);
+  clone.querySelectorAll(".no-print").forEach(el=>el.remove());
+  clone.style.width="794px";
+  clone.style.background="#fff";
+  clone.style.padding="0";
+  clone.style.margin="0";
+
+  const holder=document.createElement("div");
+  holder.style.position="fixed";
+  holder.style.left="-100000px";
+  holder.style.top="0";
+  holder.style.width="794px";
+  holder.style.background="#fff";
+  holder.appendChild(clone);
+  document.body.appendChild(holder);
+
+  const address=(document.getElementById("address")?.value || "").trim();
+  const safeName=(address || "Uebergabeprotokoll").replace(/[^a-zA-Z0-9äöüÄÖÜß_-]+/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"");
+
+  try{
+    await html2pdf().set({
+      margin:[10,10,10,10],
+      filename:`UebergabeCheck-${safeName || "Uebergabeprotokoll"}.pdf`,
+      image:{type:"jpeg",quality:0.95},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff"},
+      jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+      pagebreak:{mode:["css","legacy"]}
+    }).from(clone).save();
+  }finally{
+    holder.remove();
+  }
+}
+
+async function printTransfer(){
+  const ok=await persistCurrentTransfer();
+  if(!ok) return;
+
+  const oldTitle=document.title;
+  document.title="Übergabeprotokoll – Wohnungsübergabe";
+  window.onafterprint=()=>{
+    document.title=oldTitle;
+    window.onafterprint=null;
+  };
   setTimeout(()=>window.print(),150);
 }
 
