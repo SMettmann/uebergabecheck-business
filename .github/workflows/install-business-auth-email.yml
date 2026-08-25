@@ -1,0 +1,90 @@
+name: Install Business auth and email integration
+on:
+  push:
+    branches: [feature/business-auth-email]
+jobs:
+  update-and-verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update Business frontend
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+
+          s=s.replace('const SUPABASE_URL = "https://qnfyhyrumvptbtjkluim.supabase.co";','const SUPABASE_URL = "https://fkirkglhcpltxlcsozmd.supabase.co";')
+          s=s.replace('const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_ZUW9yxW2OITHYYq5_qVgmA_YPy_ZKLM";','const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_lNeX7Hrtp9-FFl3NVb_Gaw_O-21yXWr";')
+
+          old='''<label for="businessPassword">Passwort</label>\n<input autocomplete="current-password" id="businessPassword" placeholder="Passwort" required="" type="password"/>\n<button class="primary login-button" type="submit">'''
+          new='''<label for="businessPassword">Passwort</label>\n<input autocomplete="current-password" id="businessPassword" placeholder="Passwort" required="" type="password"/>\n<div style="text-align:right;margin-top:8px;"><a class="back-login" style="margin-top:0;" onclick="showPasswordResetRequest()">Passwort vergessen?</a></div>\n<button class="primary login-button" type="submit">'''
+          assert old in s
+          s=s.replace(old,new,1)
+
+          old='''<div class="login-note">\n        Noch kein Unternehmenskonto?<br/>\n<a class="register-link" onclick="showRegistration()">Unternehmen registrieren</a>\n\n</div>\n<div class="register-form" id="registrationForm">'''
+          new='''<div class="login-note">\n        Noch kein Unternehmenskonto?<br/>\n<a class="register-link" onclick="showRegistration()">Unternehmen registrieren</a>\n\n</div>\n<div class="register-form" id="passwordResetRequestForm">\n<div class="business-pill" style="margin-top:24px;">PASSWORT ZURÜCKSETZEN</div>\n<h2 style="font-size:24px;margin:0 0 8px;">Neues Passwort anfordern</h2>\n<p class="login-lead">Wir senden dir einen sicheren Link an deine E-Mail-Adresse.</p>\n<form onsubmit="requestBusinessPasswordReset(event)">\n<label for="passwordResetEmail">E-Mail-Adresse</label>\n<input autocomplete="email" id="passwordResetEmail" placeholder="name@unternehmen.de" required="" type="email"/>\n<button class="primary login-button" type="submit">Reset-Link senden →</button>\n</form>\n<div class="login-error hidden" id="passwordResetError"></div>\n<a class="back-login" onclick="showLogin()">← Zurück zum Login</a>\n</div>\n<div class="register-form" id="passwordUpdateForm">\n<div class="business-pill" style="margin-top:24px;">NEUES PASSWORT</div>\n<h2 style="font-size:24px;margin:0 0 8px;">Passwort festlegen</h2>\n<p class="login-lead">Lege jetzt dein neues Passwort fest.</p>\n<form onsubmit="updateBusinessPassword(event)">\n<label for="newBusinessPassword">Neues Passwort</label>\n<input autocomplete="new-password" id="newBusinessPassword" minlength="8" placeholder="Mindestens 8 Zeichen" required="" type="password"/>\n<label for="newBusinessPasswordRepeat">Passwort wiederholen</label>\n<input autocomplete="new-password" id="newBusinessPasswordRepeat" minlength="8" placeholder="Passwort erneut eingeben" required="" type="password"/>\n<button class="primary login-button" type="submit">Passwort speichern →</button>\n</form>\n<div class="login-error hidden" id="passwordUpdateError"></div>\n</div>\n<div class="register-form" id="registrationForm">'''
+          assert old in s
+          s=s.replace(old,new,1)
+
+          old='''<div class="notice" style="margin-top:14px;">Der E-Mail-Versand ist vorbereitet. Der PDF-Anhang wird aktiviert, sobald die ÜbergabeCheck-Domain bei Resend verifiziert ist.</div>'''
+          new='''<div class="notice" style="margin-top:14px;">Das aktuelle Übergabeprotokoll wird automatisch als PDF-Anhang mitgesendet.</div>'''
+          assert old in s
+          s=s.replace(old,new,1)
+
+          old='''    supabaseClient.auth.onAuthStateChange((_event, session) => {\n      supabaseUser = session?.user || null;\n    });'''
+          new='''    supabaseClient.auth.onAuthStateChange((event, session) => {\n      supabaseUser = session?.user || null;\n      if(event === "PASSWORD_RECOVERY") showPasswordUpdateForm();\n    });'''
+          assert old in s
+          s=s.replace(old,new,1)
+
+          old='''  if(supabaseUser){\n    showBusinessDashboard(supabaseUser);\n  }\n}'''
+          new='''  const resetMode=new URLSearchParams(window.location.search).get("reset-password")==="1";\n  if(resetMode){\n    showPasswordUpdateForm();\n    return;\n  }\n\n  if(supabaseUser){\n    showBusinessDashboard(supabaseUser);\n  }\n}'''
+          assert old in s
+          s=s.replace(old,new,1)
+
+          old='''function showRegistration(){\n  document.querySelector(".login-card > form")?.classList.add("hidden");\n  document.getElementById("loginError")?.classList.add("hidden");\n  document.querySelector(".login-note")?.classList.add("hidden");\n  document.getElementById("registrationForm")?.classList.add("active");\n}\n\nfunction showLogin(){\n  document.querySelector(".login-card > form")?.classList.remove("hidden");\n  document.querySelector(".login-note")?.classList.remove("hidden");\n  document.getElementById("registrationForm")?.classList.remove("active");\n  document.getElementById("registrationError")?.classList.add("hidden");\n}'''
+          new='''function hideAuthAuxForms(){\n  ["registrationForm","passwordResetRequestForm","passwordUpdateForm"].forEach(id=>document.getElementById(id)?.classList.remove("active"));\n}\n\nfunction showRegistration(){\n  document.querySelector(".login-card > form")?.classList.add("hidden");\n  document.getElementById("loginError")?.classList.add("hidden");\n  document.querySelector(".login-note")?.classList.add("hidden");\n  hideAuthAuxForms();\n  document.getElementById("registrationForm")?.classList.add("active");\n}\n\nfunction showPasswordResetRequest(){\n  const currentEmail=document.getElementById("businessEmail")?.value.trim() || "";\n  document.querySelector(".login-card > form")?.classList.add("hidden");\n  document.querySelector(".login-note")?.classList.add("hidden");\n  document.getElementById("loginError")?.classList.add("hidden");\n  hideAuthAuxForms();\n  document.getElementById("passwordResetRequestForm")?.classList.add("active");\n  const email=document.getElementById("passwordResetEmail");\n  if(email){ email.value=currentEmail; setTimeout(()=>email.focus(),0); }\n}\n\nfunction showPasswordUpdateForm(){\n  const landing=document.getElementById("landing");\n  if(landing){ landing.classList.remove("hidden"); landing.style.display="flex"; }\n  document.getElementById("businessDashboard")?.classList.add("hidden");\n  document.getElementById("appContent")?.classList.add("hidden");\n  document.querySelector(".login-card > form")?.classList.add("hidden");\n  document.querySelector(".login-note")?.classList.add("hidden");\n  hideAuthAuxForms();\n  document.getElementById("passwordUpdateForm")?.classList.add("active");\n}\n\nfunction showLogin(){\n  document.querySelector(".login-card > form")?.classList.remove("hidden");\n  document.querySelector(".login-note")?.classList.remove("hidden");\n  hideAuthAuxForms();\n  document.getElementById("registrationError")?.classList.add("hidden");\n  document.getElementById("passwordResetError")?.classList.add("hidden");\n  document.getElementById("passwordUpdateError")?.classList.add("hidden");\n}\n\nasync function requestBusinessPasswordReset(event){\n  event.preventDefault();\n  const email=document.getElementById("passwordResetEmail")?.value.trim() || "";\n  const error=document.getElementById("passwordResetError");\n  const button=event.submitter;\n  error?.classList.add("hidden");\n  if(!email || !email.includes("@")){\n    if(error){error.textContent="Bitte eine gültige E-Mail-Adresse eingeben.";error.classList.remove("hidden");}\n    return;\n  }\n  if(!initSupabase()) return;\n  if(button){button.disabled=true;button.textContent="Wird gesendet …";}\n  const redirectTo="https://uebergabe-check.de/business/app.html?reset-password=1";\n  const {error:resetError}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo});\n  if(button){button.disabled=false;button.textContent="Reset-Link senden →";}\n  if(resetError){\n    console.error("Passwort-Reset:",resetError);\n    if(error){error.textContent="Der Reset-Link konnte nicht gesendet werden. Bitte später erneut versuchen.";error.classList.remove("hidden");}\n    return;\n  }\n  if(error){error.textContent="Reset-Link wurde gesendet. Bitte prüfe dein E-Mail-Postfach.";error.classList.remove("hidden");}\n}\n\nasync function updateBusinessPassword(event){\n  event.preventDefault();\n  const password=document.getElementById("newBusinessPassword")?.value || "";\n  const repeat=document.getElementById("newBusinessPasswordRepeat")?.value || "";\n  const error=document.getElementById("passwordUpdateError");\n  const button=event.submitter;\n  error?.classList.add("hidden");\n  if(password.length<8){\n    if(error){error.textContent="Das Passwort muss mindestens 8 Zeichen lang sein.";error.classList.remove("hidden");}\n    return;\n  }\n  if(password!==repeat){\n    if(error){error.textContent="Die Passwörter stimmen nicht überein.";error.classList.remove("hidden");}\n    return;\n  }\n  if(!initSupabase()) return;\n  if(button){button.disabled=true;button.textContent="Wird gespeichert …";}\n  const {error:updateError}=await supabaseClient.auth.updateUser({password});\n  if(button){button.disabled=false;button.textContent="Passwort speichern →";}\n  if(updateError){\n    console.error("Passwort ändern:",updateError);\n    if(error){error.textContent="Das Passwort konnte nicht geändert werden. Bitte den Reset-Link erneut öffnen.";error.classList.remove("hidden");}\n    return;\n  }\n  await supabaseClient.auth.signOut();\n  history.replaceState({},"",window.location.pathname);\n  showLogin();\n  const loginError=document.getElementById("loginError");\n  if(loginError){loginError.textContent="Passwort geändert. Du kannst dich jetzt mit dem neuen Passwort anmelden.";loginError.classList.remove("hidden");}\n}\n'''
+          assert old in s
+          s=s.replace(old,new,1)
+
+          old='''function closeTransferEmail(){\n  document.getElementById("transferEmailOverlay")?.classList.add("hidden");\n}\n\nasync function sendTransferEmail(){'''
+          new='''function closeTransferEmail(){\n  document.getElementById("transferEmailOverlay")?.classList.add("hidden");\n}\n\nfunction blobToBase64(blob){\n  return new Promise((resolve,reject)=>{\n    const reader=new FileReader();\n    reader.onload=()=>resolve(String(reader.result||"").split(",")[1]||"");\n    reader.onerror=reject;\n    reader.readAsDataURL(blob);\n  });\n}\n\nasync function sendTransferEmail(){'''
+          assert old in s
+          s=s.replace(old,new,1)
+
+          old='''  try{\n    const address=document.getElementById("address")?.value.trim() || "";\n    const summaryText=document.getElementById("summary")?.innerText?.trim() || "";\n    const message=["Hallo,","","hier kommt die Übergabedokumentation von ÜbergabeCheck.",address?"Objekt/Wohnung: "+address:"","",summaryText,"","Viele Grüße","ÜbergabeCheck Business"].filter(Boolean).join("\\n");\n    const {data,error:invokeError}=await supabaseClient.functions.invoke("send-transfer-email",{body:{to:recipient,subject,message}});\n    if(invokeError) throw invokeError;\n    if(data?.error) throw new Error(data.error);\n    closeTransferEmail();\n    alert("E-Mail wurde versendet.");\n  }catch(err){\n    console.error("E-Mail-Versand:",err);\n    if(error){error.textContent="Die E-Mail konnte noch nicht versendet werden. Bitte prüfe die Resend-Domain.";error.classList.remove("hidden");}\n  }finally{'''
+          new='''  try{\n    if(typeof window.createProtocolPdfBlob!=="function") throw new Error("PDF_EXPORT_NOT_READY");\n    const saved=await persistCurrentTransfer();\n    if(!saved) return;\n    const pdf=await window.createProtocolPdfBlob();\n    const contentBase64=await blobToBase64(pdf.blob);\n    if(!contentBase64) throw new Error("PDF_ATTACHMENT_EMPTY");\n    const address=document.getElementById("address")?.value.trim() || "";\n    const message=["Hallo,","","anbei erhältst du das Übergabeprotokoll als PDF.",address?"Objekt/Wohnung: "+address:"","","Viele Grüße","ÜbergabeCheck Business"].filter(Boolean).join("\\n");\n    const {data,error:invokeError}=await supabaseClient.functions.invoke("send-transfer-email",{body:{\n      to:recipient,\n      subject,\n      message,\n      attachment:{filename:pdf.filename,contentBase64}\n    }});\n    if(invokeError) throw invokeError;\n    if(data?.error) throw new Error(data.error);\n    closeTransferEmail();\n    alert("E-Mail mit PDF-Anhang wurde versendet.");\n  }catch(err){\n    console.error("E-Mail-Versand:",err);\n    if(error){error.textContent=err?.message || "Die E-Mail konnte nicht versendet werden. Bitte später erneut versuchen.";error.classList.remove("hidden");}\n  }finally{'''
+          assert old in s
+          s=s.replace(old,new,1)
+
+          p.write_text(s)
+          PY
+      - name: Check inline JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('index.html').read_text()
+          scripts=re.findall(r'<script(?: [^>]*)?>(.*?)</script>',s,re.S)
+          inline='\n'.join(x for x in scripts if x.strip())
+          Path('/tmp/inline.js').write_text(inline)
+          PY
+          node --check /tmp/inline.js
+      - name: Verify integrations
+        run: |
+          grep -q 'fkirkglhcpltxlcsozmd.supabase.co' index.html
+          grep -q 'showPasswordResetRequest' index.html
+          grep -q 'resetPasswordForEmail' index.html
+          grep -q 'updateUser({password})' index.html
+          grep -q 'contentBase64' index.html
+          grep -q 'E-Mail mit PDF-Anhang wurde versendet' index.html
+      - name: Commit integration and remove temporary workflow
+        run: |
+          rm .github/workflows/install-business-auth-email.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/install-business-auth-email.yml
+          git commit -m "Move Business auth and email to new Supabase"
+          git push
