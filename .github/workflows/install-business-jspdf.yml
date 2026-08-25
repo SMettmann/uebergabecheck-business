@@ -1,0 +1,65 @@
+name: Install Business jsPDF export
+
+on:
+  push:
+    branches:
+      - feature/business-jspdf
+
+permissions:
+  contents: write
+
+jobs:
+  install-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/business-jspdf
+
+      - name: Replace legacy PDF export
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path=Path('index.html')
+          text=path.read_text(encoding='utf-8')
+
+          legacy_cdn='<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>\n'
+          if legacy_cdn not in text:
+              raise SystemExit('Legacy html2pdf CDN not found')
+          text=text.replace(legacy_cdn,'',1)
+
+          pattern=r'\nasync function saveTransferPdf\(\)\{.*?\n\}\n\nasync function printTransfer\(\)\{'
+          text,count=re.subn(pattern,'\nasync function printTransfer(){',text,count=1,flags=re.S)
+          if count!=1:
+              raise SystemExit(f'Expected one legacy saveTransferPdf block, found {count}')
+
+          loader='<script src="pdf-export.js?v=1"></script>'
+          if loader in text:
+              raise SystemExit('Business PDF loader already present unexpectedly')
+          marker='</body>\n</html>'
+          if marker not in text:
+              raise SystemExit('Closing body marker not found')
+          text=text.replace(marker,loader+'\n'+marker,1)
+
+          if 'html2pdf' in text:
+              raise SystemExit('Legacy html2pdf reference remains in index.html')
+          if text.count(loader)!=1:
+              raise SystemExit('Business PDF loader count is not exactly one')
+
+          path.write_text(text,encoding='utf-8')
+          Path('.github/workflows/install-business-jspdf.yml').unlink()
+          PY
+
+      - name: Check PDF JavaScript syntax
+        run: node --check pdf-export.js
+
+      - name: Commit jsPDF integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html pdf-export.js .github/workflows/install-business-jspdf.yml
+          git commit -m "Switch Business PDF export to jsPDF"
+          git push origin feature/business-jspdf
