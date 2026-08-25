@@ -1,0 +1,58 @@
+name: Business contact cleanup
+
+on:
+  push:
+    branches:
+      - feature/business-contact-cleanup
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/business-contact-cleanup
+
+      - name: Update Business login and Impressum
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+
+          old_badge = '''<br/>
+<span class="login-demo-badge">B2B-Konto · Registrierung wird im nächsten Schritt technisch angebunden</span>'''
+          if old_badge not in text:
+              raise SystemExit('Expected B2B prototype badge not found')
+          text = text.replace(old_badge, '', 1)
+
+          old_contact = '''<h3>Kontakt</h3>
+<p>
+      E-Mail: [E-Mail-Adresse]<br/>
+      Telefon: [Telefonnummer]
+    </p>'''
+          new_contact = '''<h3>Kontakt</h3>
+<p>
+      E-Mail: info@uebergabe-check.de
+    </p>'''
+          if old_contact not in text:
+              raise SystemExit('Expected Impressum contact block not found')
+          text = text.replace(old_contact, new_contact, 1)
+
+          path.write_text(text, encoding='utf-8')
+          Path('.github/workflows/business-contact-cleanup.yml').unlink()
+          PY
+
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/business-contact-cleanup.yml
+          git commit -m "Clean up Business login and Impressum contact"
+          git push origin HEAD:feature/business-contact-cleanup
