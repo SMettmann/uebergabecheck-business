@@ -1578,6 +1578,24 @@ window.addEventListener("pageshow", () => {
   restoreSupabaseSession();
 });
 
+function markBusinessDashboardHistory(){
+  if(history.state?.uebergabeCheckTransfer){
+    const nextState={...(history.state||{})};
+    delete nextState.uebergabeCheckTransfer;
+    history.replaceState(nextState,"",location.href);
+  }
+}
+
+function pushTransferHistoryEntry(){
+  if(!supabaseUser || history.state?.uebergabeCheckTransfer) return;
+  history.pushState({...(history.state||{}),uebergabeCheckTransfer:true},"",location.href);
+}
+
+window.addEventListener("popstate", async () => {
+  if(!supabaseUser) await restoreSupabaseSession();
+  if(supabaseUser) showBusinessDashboard(supabaseUser);
+});
+
 
 let businessCompanyId = null;
 let businessDataLoading = false;
@@ -2939,6 +2957,7 @@ async function navigateBusinessTab(tab,button){
 }
 
 function showBusinessDashboard(user=null){
+  markBusinessDashboardHistory();
   const landing=document.getElementById("landing");
   const dashboard=document.getElementById("businessDashboard");
   const app=document.getElementById("appContent");
@@ -3283,6 +3302,7 @@ async function businessLogout(){
 }
 
 function startApp(){
+  pushTransferHistoryEntry();
   const landing=document.getElementById("landing");
   const app=document.getElementById("appContent");
   const header=document.getElementById("appHeader");
