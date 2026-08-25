@@ -339,6 +339,7 @@
 <input autocomplete="email" id="businessEmail" placeholder="name@unternehmen.de" required="" type="email"/>
 <label for="businessPassword">Passwort</label>
 <input autocomplete="current-password" id="businessPassword" placeholder="Passwort" required="" type="password"/>
+<div style="text-align:right;margin-top:8px;"><a class="back-login" style="margin-top:0;" onclick="showPasswordResetRequest()">Passwort vergessen?</a></div>
 <button class="primary login-button" type="submit">
           Einloggen →
         </button>
@@ -350,6 +351,31 @@
         Noch kein Unternehmenskonto?<br/>
 <a class="register-link" onclick="showRegistration()">Unternehmen registrieren</a>
 
+</div>
+<div class="register-form" id="passwordResetRequestForm">
+<div class="business-pill" style="margin-top:24px;">PASSWORT ZURÜCKSETZEN</div>
+<h2 style="font-size:24px;margin:0 0 8px;">Neues Passwort anfordern</h2>
+<p class="login-lead">Wir senden dir einen sicheren Link an deine E-Mail-Adresse.</p>
+<form onsubmit="requestBusinessPasswordReset(event)">
+<label for="passwordResetEmail">E-Mail-Adresse</label>
+<input autocomplete="email" id="passwordResetEmail" placeholder="name@unternehmen.de" required="" type="email"/>
+<button class="primary login-button" type="submit">Reset-Link senden →</button>
+</form>
+<div class="login-error hidden" id="passwordResetError"></div>
+<a class="back-login" onclick="showLogin()">← Zurück zum Login</a>
+</div>
+<div class="register-form" id="passwordUpdateForm">
+<div class="business-pill" style="margin-top:24px;">NEUES PASSWORT</div>
+<h2 style="font-size:24px;margin:0 0 8px;">Passwort festlegen</h2>
+<p class="login-lead">Lege jetzt dein neues Passwort fest.</p>
+<form onsubmit="updateBusinessPassword(event)">
+<label for="newBusinessPassword">Neues Passwort</label>
+<input autocomplete="new-password" id="newBusinessPassword" minlength="8" placeholder="Mindestens 8 Zeichen" required="" type="password"/>
+<label for="newBusinessPasswordRepeat">Passwort wiederholen</label>
+<input autocomplete="new-password" id="newBusinessPasswordRepeat" minlength="8" placeholder="Passwort erneut eingeben" required="" type="password"/>
+<button class="primary login-button" type="submit">Passwort speichern →</button>
+</form>
+<div class="login-error hidden" id="passwordUpdateError"></div>
 </div>
 <div class="register-form" id="registrationForm">
 <div class="business-pill" style="margin-top:24px;">NEUES UNTERNEHMEN</div>
@@ -802,7 +828,7 @@
     <input id="transferEmailRecipient" type="email" placeholder="name@beispiel.de" autocomplete="email">
     <label for="transferEmailSubject">Betreff</label>
     <input id="transferEmailSubject" type="text" value="ÜbergabeCheck – Übergabeprotokoll">
-    <div class="notice" style="margin-top:14px;">Der E-Mail-Versand ist vorbereitet. Der PDF-Anhang wird aktiviert, sobald die ÜbergabeCheck-Domain bei Resend verifiziert ist.</div>
+    <div class="notice" style="margin-top:14px;">Das aktuelle Übergabeprotokoll wird automatisch als PDF-Anhang mitgesendet.</div>
     <div class="actions">
       <button class="secondary" type="button" onclick="closeTransferEmail()">Abbrechen</button>
       <button class="primary" id="transferEmailSendButton" type="button" onclick="sendTransferEmail()">E-Mail senden</button>
@@ -1373,6 +1399,15 @@ function closeTransferEmail(){
   document.getElementById("transferEmailOverlay")?.classList.add("hidden");
 }
 
+function blobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(String(reader.result||"").split(",")[1]||"");
+    reader.onerror=reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function sendTransferEmail(){
   const recipient=document.getElementById("transferEmailRecipient")?.value.trim() || "";
   const subject=document.getElementById("transferEmailSubject")?.value.trim() || "ÜbergabeCheck – Übergabeprotokoll";
@@ -1382,17 +1417,27 @@ async function sendTransferEmail(){
   if(!supabaseClient){ if(error){error.textContent="Der E-Mail-Dienst ist aktuell nicht verfügbar.";error.classList.remove("hidden");} return; }
   if(button){button.disabled=true;button.textContent="Wird gesendet …";}
   try{
+    if(typeof window.createProtocolPdfBlob!=="function") throw new Error("PDF_EXPORT_NOT_READY");
+    const saved=await persistCurrentTransfer();
+    if(!saved) return;
+    const pdf=await window.createProtocolPdfBlob();
+    const contentBase64=await blobToBase64(pdf.blob);
+    if(!contentBase64) throw new Error("PDF_ATTACHMENT_EMPTY");
     const address=document.getElementById("address")?.value.trim() || "";
-    const summaryText=document.getElementById("summary")?.innerText?.trim() || "";
-    const message=["Hallo,","","hier kommt die Übergabedokumentation von ÜbergabeCheck.",address?"Objekt/Wohnung: "+address:"","",summaryText,"","Viele Grüße","ÜbergabeCheck Business"].filter(Boolean).join("\n");
-    const {data,error:invokeError}=await supabaseClient.functions.invoke("send-transfer-email",{body:{to:recipient,subject,message}});
+    const message=["Hallo,","","anbei erhältst du das Übergabeprotokoll als PDF.",address?"Objekt/Wohnung: "+address:"","","Viele Grüße","ÜbergabeCheck Business"].filter(Boolean).join("\n");
+    const {data,error:invokeError}=await supabaseClient.functions.invoke("send-transfer-email",{body:{
+      to:recipient,
+      subject,
+      message,
+      attachment:{filename:pdf.filename,contentBase64}
+    }});
     if(invokeError) throw invokeError;
     if(data?.error) throw new Error(data.error);
     closeTransferEmail();
-    alert("E-Mail wurde versendet.");
+    alert("E-Mail mit PDF-Anhang wurde versendet.");
   }catch(err){
     console.error("E-Mail-Versand:",err);
-    if(error){error.textContent="Die E-Mail konnte noch nicht versendet werden. Bitte prüfe die Resend-Domain.";error.classList.remove("hidden");}
+    if(error){error.textContent=err?.message || "Die E-Mail konnte nicht versendet werden. Bitte später erneut versuchen.";error.classList.remove("hidden");}
   }finally{
     if(button){button.disabled=false;button.textContent="E-Mail senden";}
   }
@@ -1535,8 +1580,8 @@ function showSummary(){
   updateSignatureDetails();
 }
 
-const SUPABASE_URL = "https://qnfyhyrumvptbtjkluim.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_ZUW9yxW2OITHYYq5_qVgmA_YPy_ZKLM";
+const SUPABASE_URL = "https://fkirkglhcpltxlcsozmd.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_lNeX7Hrtp9-FFl3NVb_Gaw_O-21yXWr";
 let supabaseClient = null;
 let supabaseUser = null;
 
@@ -1551,8 +1596,9 @@ function initSupabase(){
       SUPABASE_PUBLISHABLE_KEY
     );
 
-    supabaseClient.auth.onAuthStateChange((_event, session) => {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
       supabaseUser = session?.user || null;
+      if(event === "PASSWORD_RECOVERY") showPasswordUpdateForm();
     });
   }
 
@@ -1564,6 +1610,12 @@ async function restoreSupabaseSession(){
 
   const { data } = await supabaseClient.auth.getSession();
   supabaseUser = data?.session?.user || null;
+
+  const resetMode=new URLSearchParams(window.location.search).get("reset-password")==="1";
+  if(resetMode){
+    showPasswordUpdateForm();
+    return;
+  }
 
   if(supabaseUser){
     showBusinessDashboard(supabaseUser);
@@ -1672,19 +1724,103 @@ async function loadBusinessData(user){
   }finally{businessDataLoading=false;}
 }
 
+function hideAuthAuxForms(){
+  ["registrationForm","passwordResetRequestForm","passwordUpdateForm"].forEach(id=>document.getElementById(id)?.classList.remove("active"));
+}
+
 function showRegistration(){
   document.querySelector(".login-card > form")?.classList.add("hidden");
   document.getElementById("loginError")?.classList.add("hidden");
   document.querySelector(".login-note")?.classList.add("hidden");
+  hideAuthAuxForms();
   document.getElementById("registrationForm")?.classList.add("active");
+}
+
+function showPasswordResetRequest(){
+  const currentEmail=document.getElementById("businessEmail")?.value.trim() || "";
+  document.querySelector(".login-card > form")?.classList.add("hidden");
+  document.querySelector(".login-note")?.classList.add("hidden");
+  document.getElementById("loginError")?.classList.add("hidden");
+  hideAuthAuxForms();
+  document.getElementById("passwordResetRequestForm")?.classList.add("active");
+  const email=document.getElementById("passwordResetEmail");
+  if(email){ email.value=currentEmail; setTimeout(()=>email.focus(),0); }
+}
+
+function showPasswordUpdateForm(){
+  const landing=document.getElementById("landing");
+  if(landing){ landing.classList.remove("hidden"); landing.style.display="flex"; }
+  document.getElementById("businessDashboard")?.classList.add("hidden");
+  document.getElementById("appContent")?.classList.add("hidden");
+  document.querySelector(".login-card > form")?.classList.add("hidden");
+  document.querySelector(".login-note")?.classList.add("hidden");
+  hideAuthAuxForms();
+  document.getElementById("passwordUpdateForm")?.classList.add("active");
 }
 
 function showLogin(){
   document.querySelector(".login-card > form")?.classList.remove("hidden");
   document.querySelector(".login-note")?.classList.remove("hidden");
-  document.getElementById("registrationForm")?.classList.remove("active");
+  hideAuthAuxForms();
   document.getElementById("registrationError")?.classList.add("hidden");
+  document.getElementById("passwordResetError")?.classList.add("hidden");
+  document.getElementById("passwordUpdateError")?.classList.add("hidden");
 }
+
+async function requestBusinessPasswordReset(event){
+  event.preventDefault();
+  const email=document.getElementById("passwordResetEmail")?.value.trim() || "";
+  const error=document.getElementById("passwordResetError");
+  const button=event.submitter;
+  error?.classList.add("hidden");
+  if(!email || !email.includes("@")){
+    if(error){error.textContent="Bitte eine gültige E-Mail-Adresse eingeben.";error.classList.remove("hidden");}
+    return;
+  }
+  if(!initSupabase()) return;
+  if(button){button.disabled=true;button.textContent="Wird gesendet …";}
+  const redirectTo="https://uebergabe-check.de/business/app.html?reset-password=1";
+  const {error:resetError}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo});
+  if(button){button.disabled=false;button.textContent="Reset-Link senden →";}
+  if(resetError){
+    console.error("Passwort-Reset:",resetError);
+    if(error){error.textContent="Der Reset-Link konnte nicht gesendet werden. Bitte später erneut versuchen.";error.classList.remove("hidden");}
+    return;
+  }
+  if(error){error.textContent="Reset-Link wurde gesendet. Bitte prüfe dein E-Mail-Postfach.";error.classList.remove("hidden");}
+}
+
+async function updateBusinessPassword(event){
+  event.preventDefault();
+  const password=document.getElementById("newBusinessPassword")?.value || "";
+  const repeat=document.getElementById("newBusinessPasswordRepeat")?.value || "";
+  const error=document.getElementById("passwordUpdateError");
+  const button=event.submitter;
+  error?.classList.add("hidden");
+  if(password.length<8){
+    if(error){error.textContent="Das Passwort muss mindestens 8 Zeichen lang sein.";error.classList.remove("hidden");}
+    return;
+  }
+  if(password!==repeat){
+    if(error){error.textContent="Die Passwörter stimmen nicht überein.";error.classList.remove("hidden");}
+    return;
+  }
+  if(!initSupabase()) return;
+  if(button){button.disabled=true;button.textContent="Wird gespeichert …";}
+  const {error:updateError}=await supabaseClient.auth.updateUser({password});
+  if(button){button.disabled=false;button.textContent="Passwort speichern →";}
+  if(updateError){
+    console.error("Passwort ändern:",updateError);
+    if(error){error.textContent="Das Passwort konnte nicht geändert werden. Bitte den Reset-Link erneut öffnen.";error.classList.remove("hidden");}
+    return;
+  }
+  await supabaseClient.auth.signOut();
+  history.replaceState({},"",window.location.pathname);
+  showLogin();
+  const loginError=document.getElementById("loginError");
+  if(loginError){loginError.textContent="Passwort geändert. Du kannst dich jetzt mit dem neuen Passwort anmelden.";loginError.classList.remove("hidden");}
+}
+
 
 async function businessRegister(event){
   event.preventDefault();
