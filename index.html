@@ -889,9 +889,8 @@
       Unterschriften an Umami übermittelt.
     </p>
 <p>
-      Umami Cloud betreibt Server in der EU und den USA und gibt an, GDPR-/DSGVO-konform
-      zu arbeiten. Weitere Informationen stellt Umami in seiner eigenen Dokumentation
-      bereit.
+      Weitere Informationen zur Datenverarbeitung stellt Umami in seiner eigenen
+      Datenschutzdokumentation bereit.
     </p>
 <h3>6. Hosting durch STRATO</h3>
 <p>
@@ -907,9 +906,7 @@
       insbesondere zur Bereitstellung und Absicherung der Website sowie – soweit
       erforderlich – auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes
       Interesse an einem sicheren und funktionierenden Betrieb sowie an der
-      Verbesserung des Angebots). Die konkrete rechtliche Einordnung sollte vor einer
-      kommerziellen Veröffentlichung anhand des endgültigen technischen Aufbaus
-      geprüft werden.
+      Verbesserung des Angebots).
     </p>
 <h3>8. Deine Rechte</h3>
 <p>
@@ -1910,7 +1907,7 @@ function closeApartment(){
   document.getElementById("apartmentDetailSection")?.classList.add("hidden");
   document.getElementById("objectDetailSection")?.classList.remove("hidden");
   renderApartments();
-  await updateObjectDetailStats();
+  updateObjectDetailStats();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -2032,6 +2029,7 @@ async function openObject(id){
   document.getElementById("objectDetailAddress").textContent = address || "Keine Adresse angegeben";
 
   renderApartments();
+  await updateObjectDetailStats();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
