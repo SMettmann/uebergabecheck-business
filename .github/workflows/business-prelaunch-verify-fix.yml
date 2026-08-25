@@ -1,0 +1,82 @@
+name: Business prelaunch verify and fix
+
+on:
+  push:
+    branches:
+      - feature/business-prelaunch-cleanup
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/business-prelaunch-cleanup
+
+      - name: Fix review findings
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path=Path('index.html')
+          text=path.read_text(encoding='utf-8')
+
+          old='''function closeApartment(){\n  selectedApartmentId=null;\n  document.getElementById("apartmentDetailSection")?.classList.add("hidden");\n  document.getElementById("objectDetailSection")?.classList.remove("hidden");\n  renderApartments();\n  await updateObjectDetailStats();\n  window.scrollTo({top:0,behavior:"smooth"});\n}'''
+          new='''function closeApartment(){\n  selectedApartmentId=null;\n  document.getElementById("apartmentDetailSection")?.classList.add("hidden");\n  document.getElementById("objectDetailSection")?.classList.remove("hidden");\n  renderApartments();\n  updateObjectDetailStats();\n  window.scrollTo({top:0,behavior:"smooth"});\n}'''
+          if old not in text: raise SystemExit('closeApartment review block not found')
+          text=text.replace(old,new,1)
+
+          old='''  renderApartments();\n  window.scrollTo({top:0,behavior:"smooth"});\n}\n\nfunction editSelectedObject(){'''
+          new='''  renderApartments();\n  await updateObjectDetailStats();\n  window.scrollTo({top:0,behavior:"smooth"});\n}\n\nfunction editSelectedObject(){'''
+          if old not in text: raise SystemExit('openObject refresh location not found')
+          text=text.replace(old,new,1)
+
+          text=text.replace('''      Verbesserung des Angebots). Die konkrete rechtliche Einordnung sollte vor einer\n      kommerziellen Veröffentlichung anhand des endgültigen technischen Aufbaus\n      geprüft werden.''','''      Verbesserung des Angebots).''',1)
+
+          text=text.replace('''      Umami Cloud betreibt Server in der EU und den USA und gibt an, GDPR-/DSGVO-konform\n      zu arbeiten. Weitere Informationen stellt Umami in seiner eigenen Dokumentation\n      bereit.''','''      Weitere Informationen zur Datenverarbeitung stellt Umami in seiner eigenen\n      Datenschutzdokumentation bereit.''',1)
+
+          # structural assertions for the bundled cleanup
+          checks={
+            'privacy placeholder':'[DEINE E-MAIL-ADRESSE EINTRAGEN]' not in text,
+            'impressum placeholder':'[E-Mail-Adresse]' not in text and '[Telefonnummer]' not in text,
+            'prototype badge':'login-demo-badge' not in text,
+            'single apartment form definition':text.count('function showApartmentForm(){')==1,
+            'single hide apartment definition':text.count('function hideApartmentForm(){')==1,
+            'single top-level style block':text.count('<style>')==1 and text.count('</style>')==1,
+            'object transfer stat id':'id="objectTransferCount"' in text,
+            'object defect stat id':'id="objectOpenDefectCount"' in text,
+            'login legal footer':'class="site-footer login-legal"' in text,
+            'supabase privacy':'<h3>4. Authentifizierung und Datenbank mit Supabase</h3>' in text,
+            'autosave guard':'let autosaveListenersBound=false;' in text,
+          }
+          failed=[name for name,ok in checks.items() if not ok]
+          if failed: raise SystemExit('Failed checks: '+', '.join(failed))
+
+          path.write_text(text,encoding='utf-8')
+          Path('.github/workflows/business-prelaunch-verify-fix.yml').unlink()
+          PY
+
+      - name: Check inline JavaScript syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          text=Path('index.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script>(.*?)</script>',text,flags=re.S)
+          if not scripts: raise SystemExit('No inline scripts found')
+          Path('/tmp/business-inline.js').write_text('\n'.join(scripts),encoding='utf-8')
+          PY
+          node --check /tmp/business-inline.js
+
+      - name: Commit review fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/business-prelaunch-verify-fix.yml
+          git commit -m "Fix and verify Business prelaunch cleanup"
+          git push origin HEAD:feature/business-prelaunch-cleanup
