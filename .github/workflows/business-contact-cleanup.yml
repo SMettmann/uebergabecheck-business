@@ -22,29 +22,17 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-
           path = Path('index.html')
           text = path.read_text(encoding='utf-8')
-
-          old_badge = '''<br/>
-<span class="login-demo-badge">B2B-Konto · Registrierung wird im nächsten Schritt technisch angebunden</span>'''
+          old_badge = '<br/>\n<span class="login-demo-badge">B2B-Konto · Registrierung wird im nächsten Schritt technisch angebunden</span>'
           if old_badge not in text:
               raise SystemExit('Expected B2B prototype badge not found')
           text = text.replace(old_badge, '', 1)
-
-          old_contact = '''<h3>Kontakt</h3>
-<p>
-      E-Mail: [E-Mail-Adresse]<br/>
-      Telefon: [Telefonnummer]
-    </p>'''
-          new_contact = '''<h3>Kontakt</h3>
-<p>
-      E-Mail: info@uebergabe-check.de
-    </p>'''
+          old_contact = '<h3>Kontakt</h3>\n<p>\n      E-Mail: [E-Mail-Adresse]<br/>\n      Telefon: [Telefonnummer]\n    </p>'
+          new_contact = '<h3>Kontakt</h3>\n<p>\n      E-Mail: info@uebergabe-check.de\n    </p>'
           if old_contact not in text:
               raise SystemExit('Expected Impressum contact block not found')
           text = text.replace(old_contact, new_contact, 1)
-
           path.write_text(text, encoding='utf-8')
           Path('.github/workflows/business-contact-cleanup.yml').unlink()
           PY
