@@ -1574,10 +1574,8 @@ document.addEventListener("DOMContentLoaded", () => {
   restoreSupabaseSession();
 });
 
-window.addEventListener("pageshow", (event) => {
-  if(event.persisted){
-    restoreSupabaseSession();
-  }
+window.addEventListener("pageshow", () => {
+  restoreSupabaseSession();
 });
 
 
