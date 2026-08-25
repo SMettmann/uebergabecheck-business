@@ -315,7 +315,7 @@
 </style>
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script data-domains="smettmann.github.io" data-website-id="a4c18987-08e8-480c-a3e7-a19b50232683" defer="" src="https://cloud.umami.is/script.js"></script>
+<script data-domains="uebergabe-check.de" data-website-id="a4c18987-08e8-480c-a3e7-a19b50232683" defer="" src="https://cloud.umami.is/script.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
@@ -887,12 +887,13 @@
       zu arbeiten. Weitere Informationen stellt Umami in seiner eigenen Dokumentation
       bereit.
     </p>
-<h3>5. Hosting durch GitHub Pages</h3>
+<h3>5. Hosting durch STRATO</h3>
 <p>
-      Diese Website wird derzeit über <strong>GitHub Pages</strong> bereitgestellt.
-      Beim Aufruf einer GitHub-Pages-Website kann GitHub die IP-Adresse des Besuchers
-      aus Sicherheitsgründen protokollieren und speichern. Die Verarbeitung erfolgt
-      durch GitHub nach dessen eigenen Datenschutzbestimmungen.
+      Diese Website wird über <strong>STRATO</strong> bereitgestellt.
+      Beim Aufruf der Website können technisch notwendige Verbindungsdaten wie insbesondere
+      IP-Adresse, Zeitpunkt des Zugriffs, aufgerufene Ressource sowie Browser- und Geräteinformationen
+      durch den Hostinganbieter verarbeitet werden. Dies dient der sicheren und zuverlässigen
+      Bereitstellung der Website.
     </p>
 <h3>6. Rechtsgrundlage</h3>
 <p>
@@ -1086,8 +1087,6 @@ function getTenantSurname(){
   const tenant=(document.getElementById("tenant")?.value || "").trim();
   if(!tenant) return "";
 
-  // Erwartet z.B. "Max Mustermann" oder "Max und Erika Mustermann".
-  // Für die Anzeige/Suche verwenden wir den letzten Namensbestandteil.
   const parts=tenant.split(/\s+/).filter(Boolean);
   return parts.length ? parts[parts.length-1] : "";
 }
@@ -1195,7 +1194,6 @@ function restoreSignatureImage(id,dataUrl){
 
 function clearDraft(){
   sessionStorage.removeItem("uebergabecheck_draft");
-  // Alte Versionen haben localStorage verwendet. Diese Daten werden einmalig entfernt.
   try{ localStorage.removeItem("uebergabecheck_draft"); }catch(e){}
 }
 function addAutosaveListeners(){
@@ -1546,7 +1544,6 @@ function showSummary(){
 
       <div class="protocol-footer">ÜbergabeCheck · Erstellt am ${new Date().toLocaleDateString("de-DE")}</div>
     </div>`;
-  // Der Entwurf bleibt bis zum expliziten Speichern erhalten.
   go(5);
   setupSignature("sigTenant");
   setupSignature("sigLandlord");
@@ -2049,9 +2046,6 @@ function quickAddApartment(){
     return;
   }
 
-  // Das Wohnungsformular liegt im Objektbereich. Deshalb öffnen wir
-  // zunächst den Objektbereich als Container. Im Formular selbst kann
-  // anschließend jedes beliebige Objekt ausgewählt werden.
   const firstObject=businessObjects[0];
   selectedBusinessObjectId=firstObject.id;
 
@@ -2112,13 +2106,8 @@ function editApartment(id){
 
   window.editingApartmentId=apartment.id;
 
-  // Die Wohnung gehört bereits zu diesem Objekt.
   selectedBusinessObjectId=apartment.object_id || selectedBusinessObjectId;
 
-  // Das Wohnungsformular liegt technisch im Objektbereich.
-  // Wenn die Wohnung aus dem Reiter "Wohnungen" geöffnet wurde, ist
-  // dieser Container noch versteckt. Beim Bearbeiten öffnen wir ihn
-  // deshalb automatisch mit dem zugehörigen Objekt.
   const objectSection=document.getElementById("objectDetailSection");
   if(objectSection?.classList.contains("hidden")){
     const object=businessObjects.find(o=>String(o.id)===String(selectedBusinessObjectId));
@@ -2172,7 +2161,6 @@ function editApartment(id){
 }
 
 function showApartmentForm(){
-  // Beim normalen Anlegen bleibt ein bereits geöffnetes Objekt vorausgewählt.
   const currentObjectId=selectedBusinessObjectId;
 
   const select=document.getElementById("apartmentObject");
@@ -2243,7 +2231,6 @@ async function saveApartment(){
       return;
     }
 
-    // Lokale Daten ebenfalls aktualisieren, auch wenn das Objekt geändert wurde.
     let oldApartment=null;
     Object.keys(businessApartments||{}).forEach(objectId=>{
       const list=businessApartments[objectId]||[];
@@ -3127,7 +3114,6 @@ async function openBusinessTransfer(transferId, objectId, apartmentId){
     return;
   }
 
-  // App zuerst sichtbar machen, danach die gespeicherten Daten einsetzen.
   startApp();
 
   if(transfer?.data){
@@ -3327,9 +3313,6 @@ async function businessLogout(){
 }
 
 function startApp(){
-  // Öffne die bestehende Übergabe-Oberfläche zuerst.
-  // Erst danach wird der Entwurf zurückgesetzt. So kann ein Fehler
-  // in der Initialisierung niemals eine komplett leere Seite erzeugen.
   const landing=document.getElementById("landing");
   const app=document.getElementById("appContent");
   const header=document.getElementById("appHeader");
@@ -3360,7 +3343,6 @@ function startApp(){
   if(header) header.style.display="none";
   if(hero) hero.style.display="none";
 
-  // Step 1 garantiert sichtbar machen.
   document.querySelectorAll('[id^="step"]').forEach(x=>x.classList.add("hidden"));
   step1.classList.remove("hidden");
   step1.style.display="block";
@@ -3382,7 +3364,6 @@ function startApp(){
     }
   }catch(error){
     console.error("Übergabe initialisieren:",error);
-    // Step 1 bleibt sichtbar, auch wenn optionale Initialisierung fehlschlägt.
   }
 
   document.documentElement.scrollTop=0;
