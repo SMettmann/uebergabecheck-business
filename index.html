@@ -1574,6 +1574,12 @@ document.addEventListener("DOMContentLoaded", () => {
   restoreSupabaseSession();
 });
 
+window.addEventListener("pageshow", (event) => {
+  if(event.persisted){
+    restoreSupabaseSession();
+  }
+});
+
 
 let businessCompanyId = null;
 let businessDataLoading = false;
