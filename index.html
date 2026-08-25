@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>ÜbergabeCheck – Wohnungsübergabe</title>
+<title>ÜbergabeCheck Business – Digitale Wohnungsübergaben</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f6f8;color:#17181b}
@@ -185,7 +185,6 @@
   .login-button:disabled{opacity:.6;cursor:wait}
   .login-note{font-size:12px;color:#888;text-align:center;margin-top:16px;line-height:1.5}
   .login-error{background:#fff0f0;color:#a11;border:1px solid #f0cccc;border-radius:11px;padding:11px 13px;font-size:13px;margin-top:14px}
-  .login-demo-badge{display:inline-block;margin-top:12px;font-size:11px;color:#777;background:#f7f7f8;border-radius:8px;padding:6px 8px}
   @media(max-width:700px){
     .business-login{min-height:calc(100vh - 50px);padding:20px 0 45px}
     .login-card{padding:24px 18px;border-radius:20px}
@@ -305,14 +304,12 @@
   .transfer-start-actions .cancel{background:#eee}
   .transfer-start-actions .start{background:#111;color:#fff}
 
-<style>
 .status.open{background:#fff4cc;color:#8a6500;}
 .status.in-progress{background:#e8f0ff;color:#2856a6;}
 .status.resolved{background:#e5f6e9;color:#237a3b;}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000;}
 .modal-overlay.hidden{display:none!important;}
 .modal-box{background:#fff;border-radius:18px;padding:24px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.18);}
-</style>
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script data-domains="uebergabe-check.de" data-website-id="a4c18987-08e8-480c-a3e7-a19b50232683" defer="" src="https://cloud.umami.is/script.js"></script>
@@ -375,6 +372,9 @@
 <a class="back-login" onclick="showLogin()">← Zurück zum Login</a>
 </div>
 </div>
+<div class="site-footer login-legal">
+  ÜbergabeCheck Business · <a onclick="openImpressum()">Impressum</a> · <a onclick="openDatenschutz()">Datenschutz</a>
+</div>
 </section>
 <div class="transfer-start-modal hidden" id="transferStartModal" style="display:none;">
 <div class="transfer-start-box">
@@ -421,7 +421,7 @@
 <div class="dashboard-grid">
 <div class="dashboard-stat"><span>Objekte</span><strong>0</strong></div>
 <div class="dashboard-stat"><span>Wohnungen</span><strong>0</strong></div>
-<div class="dashboard-stat"><span>Aktive Übergaben</span><strong>0</strong></div>
+<div class="dashboard-stat"><span>Übergaben</span><strong>0</strong></div>
 <div class="dashboard-stat"><span>Offene Mängel</span><strong>0</strong></div>
 </div>
 <section class="dashboard-card hidden" id="businessTransfersCard">
@@ -519,8 +519,8 @@
 </div>
 <div class="object-detail-meta">
 <div><span>Wohnungen</span><strong id="objectApartmentCount">0</strong></div>
-<div><span>Übergaben</span><strong>0</strong></div>
-<div><span>Offene Mängel</span><strong>0</strong></div>
+<div><span>Übergaben</span><strong id="objectTransferCount">0</strong></div>
+<div><span>Offene Mängel</span><strong id="objectOpenDefectCount">0</strong></div>
 </div>
 <div class="dashboard-card-head">
 <h2>Wohnungen</h2>
@@ -848,23 +848,31 @@
 <strong>Sven Mettmann</strong><br/>
       Weiherstraße 30<br/>
       89522 Heidenheim an der Brenz<br/><br/>
-      E-Mail: <strong>[DEINE E-MAIL-ADRESSE EINTRAGEN]</strong>
+      E-Mail: <strong>info@uebergabe-check.de</strong>
 </p>
 <h3>2. Allgemeine Hinweise</h3>
 <p>
-      ÜbergabeCheck ist eine Webanwendung zur Erstellung von Wohnungsübergabeprotokollen.
-      Personenbezogene Angaben, die du in das Formular eingibst, werden von ÜbergabeCheck
-      im Business-Bereich zur dauerhaften Verwaltung an unseren angebundenen Datenbankdienst übertragen. Die
-      Daten werden dem jeweiligen Unternehmenskonto und der zugehörigen Wohnung zugeordnet.
+      ÜbergabeCheck Business ist eine Webanwendung zur zentralen Verwaltung von Objekten, Wohnungen,
+      Wohnungsübergaben und festgestellten Mängeln. Für die Nutzung eines Unternehmenskontos werden
+      Anmelde- und Kontodaten verarbeitet. Angaben aus gespeicherten Übergaben werden dem jeweiligen
+      Unternehmenskonto und der zugehörigen Wohnung zugeordnet.
     </p>
-<h3>3. Speicherung der eingegebenen Daten</h3>
+<h3>3. Speicherung und Verarbeitung in ÜbergabeCheck Business</h3>
 <p>
-      Eingaben, Entwürfe, Fotos und Unterschriften werden für die Nutzung der Anwendung
-      lokal im Browser des verwendeten Geräts gespeichert bzw. verarbeitet. Im Business-Bereich werden gespeicherte Übergabeprotokolle zentral dem jeweiligen Unternehmenskonto zugeordnet.
-      Die Daten können insbesondere beim Löschen der Browserdaten oder bei einer
-      Deinstallation bzw. einem Zurücksetzen des Browsers verloren gehen.
+      Während einer laufenden Übergabe kann ein technischer Entwurf vorübergehend im Browser des
+      verwendeten Geräts gespeichert werden. Dauerhaft gespeicherte Objekte, Wohnungen, Übergaben,
+      Mängelangaben, Fotos und Unterschriften werden im Business-Bereich zentral gespeichert und dem
+      jeweiligen Unternehmenskonto zugeordnet. Das Löschen lokaler Browserdaten entfernt daher nicht
+      automatisch bereits zentral gespeicherte Business-Datensätze.
     </p>
-<h3>4. Webanalyse mit Umami</h3>
+<h3>4. Authentifizierung und Datenbank mit Supabase</h3>
+<p>
+      Für Registrierung, Anmeldung und die zentrale Speicherung der Business-Daten verwenden wir
+      <strong>Supabase</strong>. Dabei werden insbesondere Kontodaten sowie die vom angemeldeten Unternehmen
+      angelegten Objekte, Wohnungen und Übergabedaten verarbeitet. Der Zugriff auf die Business-Daten
+      erfolgt kontobezogen über die für ÜbergabeCheck eingerichtete Supabase-Infrastruktur.
+    </p>
+<h3>5. Webanalyse mit Umami</h3>
 <p>
       Zur Auswertung der Nutzung unserer Website verwenden wir <strong>Umami Cloud</strong>,
       einen datenschutzorientierten Webanalysedienst der Umami Software, Inc.
@@ -885,7 +893,7 @@
       zu arbeiten. Weitere Informationen stellt Umami in seiner eigenen Dokumentation
       bereit.
     </p>
-<h3>5. Hosting durch STRATO</h3>
+<h3>6. Hosting durch STRATO</h3>
 <p>
       Diese Website wird über <strong>STRATO</strong> bereitgestellt.
       Beim Aufruf der Website können technisch notwendige Verbindungsdaten wie insbesondere
@@ -893,7 +901,7 @@
       durch den Hostinganbieter verarbeitet werden. Dies dient der sicheren und zuverlässigen
       Bereitstellung der Website.
     </p>
-<h3>6. Rechtsgrundlage</h3>
+<h3>7. Rechtsgrundlage</h3>
 <p>
       Soweit personenbezogene Daten verarbeitet werden, erfolgt die Verarbeitung
       insbesondere zur Bereitstellung und Absicherung der Website sowie – soweit
@@ -903,29 +911,28 @@
       kommerziellen Veröffentlichung anhand des endgültigen technischen Aufbaus
       geprüft werden.
     </p>
-<h3>7. Deine Rechte</h3>
+<h3>8. Deine Rechte</h3>
 <p>
       Du hast nach Maßgabe der DSGVO insbesondere das Recht auf Auskunft, Berichtigung,
       Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch
       gegen bestimmte Verarbeitungen. Außerdem besteht ein Beschwerderecht bei einer
       Datenschutzaufsichtsbehörde.
     </p>
-<h3>8. Änderungen</h3>
+<h3>9. Änderungen</h3>
 <p>
       Diese Datenschutzerklärung kann angepasst werden, wenn sich die technische
       Ausgestaltung oder die eingesetzten Dienste ändern.
-    </p>
-<p class="notice">
-      Hinweis: Diese Datenschutzerklärung ist eine technische Vorlage für den aktuellen
-      Prototypen und ersetzt keine individuelle rechtliche Prüfung. Vor einer
-      gewerblichen Veröffentlichung sollten insbesondere Hosting, Analytics,
-      Zahlungsanbieter und der genaue Datenfluss rechtlich geprüft werden.
     </p>
 </div>
 </div>
 <script>
 function openDatenschutz(){document.getElementById("datenschutzOverlay").classList.remove("hidden");}
 function closeDatenschutz(){document.getElementById("datenschutzOverlay").classList.add("hidden");}
+document.addEventListener("DOMContentLoaded",()=>{
+  const hash=(window.location.hash||"").toLowerCase();
+  if(hash==="#impressum") openImpressum();
+  else if(hash==="#datenschutz") openDatenschutz();
+});
 const baseRoomNames=["Flur","Wohnzimmer","Schlafzimmer","Kinderzimmer","Küche","Badezimmer","WC","Balkon","Keller","Garage","Abstellraum"];
 let customRooms=[];
 let selectedRooms=["Flur","Wohnzimmer","Schlafzimmer","Küche","Badezimmer"];
@@ -1194,7 +1201,10 @@ function clearDraft(){
   sessionStorage.removeItem("uebergabecheck_draft");
   try{ localStorage.removeItem("uebergabecheck_draft"); }catch(e){}
 }
+let autosaveListenersBound=false;
 function addAutosaveListeners(){
+  if(autosaveListenersBound) return;
+  autosaveListenersBound=true;
   document.querySelectorAll("input, textarea, select").forEach(el=>{
     el.addEventListener("input",()=>{
       saveDraft();
@@ -1900,6 +1910,7 @@ function closeApartment(){
   document.getElementById("apartmentDetailSection")?.classList.add("hidden");
   document.getElementById("objectDetailSection")?.classList.remove("hidden");
   renderApartments();
+  await updateObjectDetailStats();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -1939,6 +1950,7 @@ async function startApartmentTransfer(){
   });
 
   updateBusinessStats();
+  await updateObjectDetailStats();
   startApp();
 }
 async function renderApartmentTransfers(){
@@ -2002,7 +2014,7 @@ async function renderApartmentTransfers(){
 }
 
 
-function openObject(id){
+async function openObject(id){
   const object = businessObjects.find(x=>x.id===id);
   if(!object) return;
 
@@ -2055,30 +2067,6 @@ function quickAddApartment(){
   },50);
 }
 
-
-function showApartmentForm(){
-  const select=document.getElementById("apartmentObject");
-  if(select){
-    const currentId=selectedBusinessObjectId;
-    select.innerHTML='<option value="">Bitte Objekt auswählen</option>' +
-      (businessObjects||[]).map(o=>
-        `<option value="${esc(o.id)}">${esc(o.name || "Unbenanntes Objekt")}${o.street ? " – "+esc(o.street) : ""}</option>`
-      ).join("");
-
-    if(currentId!==null && currentId!==undefined){
-      select.value=String(currentId);
-    }
-  }
-
-  document.getElementById("apartmentForm")?.classList.remove("hidden");
-  document.getElementById("apartmentName")?.focus();
-}
-
-function hideApartmentForm(){
-  document.getElementById("apartmentForm")?.classList.add("hidden");
-  const select=document.getElementById("apartmentObject");
-  if(select) select.value="";
-}
 
 async function resetApartmentForm(){
   ["apartmentObject","apartmentName","apartmentNumber","apartmentRooms","apartmentArea","apartmentNote"].forEach(id=>{
@@ -2274,6 +2262,7 @@ async function saveApartment(){
 
   renderApartments();
   updateApartmentCount();
+  if(selectedBusinessObjectId!==null) await updateObjectDetailStats();
 
   if(window.editingApartmentId && String(selectedApartmentId)===String(window.editingApartmentId)){
     const updated=getSelectedApartment();
@@ -2304,6 +2293,7 @@ async function deleteApartment(id){
 
   businessApartments[selectedBusinessObjectId]=list.filter(item=>String(item.id)!==String(id));
   delete apartmentTransfers[id];renderApartments();updateApartmentCount();
+  if(selectedBusinessObjectId!==null) await updateObjectDetailStats();
 }
 function renderApartments(){
   const list=document.getElementById("apartmentList");
@@ -2343,6 +2333,27 @@ function updateApartmentCount(){
   const count=(businessApartments[selectedBusinessObjectId]||[]).length;
   const el=document.getElementById("objectApartmentCount");
   if(el) el.textContent=count;
+}
+
+async function updateObjectDetailStats(){
+  if(selectedBusinessObjectId===null || selectedBusinessObjectId===undefined) return;
+
+  const objectId=String(selectedBusinessObjectId);
+  const apartments=businessApartments[selectedBusinessObjectId] || businessApartments[objectId] || [];
+  const transferCount=apartments.reduce((sum,apartment)=>{
+    const rows=apartmentTransfers[apartment.id] || apartmentTransfers[String(apartment.id)] || [];
+    return sum + rows.length;
+  },0);
+
+  const apartmentCount=document.getElementById("objectApartmentCount");
+  const transferEl=document.getElementById("objectTransferCount");
+  const defectEl=document.getElementById("objectOpenDefectCount");
+  if(apartmentCount) apartmentCount.textContent=apartments.length;
+  if(transferEl) transferEl.textContent=transferCount;
+
+  const defects=await loadBusinessDefects(false);
+  const defectCount=defects.filter(d=>String(d.objectId)===objectId).length;
+  if(defectEl) defectEl.textContent=defectCount;
 }
 
 function resetObjectForm(){
@@ -2507,14 +2518,15 @@ function runBusinessGlobalSearch(){
     });
   });
   if(type==="all"||type==="transfers") Object.entries(apartmentTransfers||{}).forEach(([aid,list])=>{
-    const a=getApartmentById(aid);
-    let object=null;
-    if(a){
-      const objectId=Object.keys(businessApartments||{}).find(oid=>
-        (businessApartments[oid]||[]).some(ap=>String(ap.id)===String(aid))
-      );
-      object=businessObjects.find(x=>String(x.id)===String(objectId));
-    }
+    const objectId=Object.keys(businessApartments||{}).find(oid=>
+      (businessApartments[oid]||[]).some(ap=>String(ap.id)===String(aid))
+    );
+    const a=objectId
+      ? (businessApartments[objectId]||[]).find(ap=>String(ap.id)===String(aid)) || null
+      : null;
+    const object=objectId
+      ? businessObjects.find(x=>String(x.id)===String(objectId)) || null
+      : null;
 
     (list||[]).forEach(t=>{
       const tenantSurname=t.tenantSurname || "";
@@ -2825,6 +2837,7 @@ async function saveDefectChanges(){
   closeDefectEditor();
   await updateBusinessStats();
   await renderBusinessDefects();
+  if(selectedBusinessObjectId!==null) await updateObjectDetailStats();
 }
 
 async function quickResolveDefect(transferId,roomName){
@@ -2867,6 +2880,7 @@ async function quickResolveDefect(transferId,roomName){
 
   await updateBusinessStats();
   await renderBusinessDefects();
+  if(selectedBusinessObjectId!==null) await updateObjectDetailStats();
   const history=document.getElementById("defectsHistory");
   if(history && !history.classList.contains("hidden")) await renderDefectHistory();
 }
@@ -3086,6 +3100,7 @@ async function deleteBusinessTransfer(transferId, apartmentId){
 
   await renderApartmentTransfers();
   updateBusinessStats();
+  if(selectedBusinessObjectId!==null) await updateObjectDetailStats();
 }
 
 async function openBusinessTransfer(transferId, objectId, apartmentId){
@@ -3136,7 +3151,7 @@ async function renderBusinessTransfers(){
 
   const {data:rows,error}=await supabaseClient
     .from("transfers")
-    .select("id,type,status,created_at,apartment_id,apartments(id,name,number,object_id,objects(id,name))")
+    .select("id,type,status,created_at,apartment_id,data,apartments(id,name,number,object_id,objects(id,name))")
     .order("created_at",{ascending:false});
 
   if(error){
@@ -3187,7 +3202,7 @@ async function renderDashboardCurrentTransfers(){
 
   const {data:rows,error}=await supabaseClient
     .from("transfers")
-    .select("id,type,status,created_at,apartment_id,apartments(id,name,object_id,objects(id,name))")
+    .select("id,type,status,created_at,apartment_id,data,apartments(id,name,object_id,objects(id,name))")
     .order("created_at",{ascending:false})
     .limit(5);
 
@@ -3217,7 +3232,7 @@ async function renderDashboardCurrentTransfers(){
         <span class="status active">${esc(t.status || "Neu")}</span>
         <button class="secondary" type="button"
           onclick="openBusinessTransfer('${escAttr(t.id)}','${escAttr(o?.id || "")}','${escAttr(a?.id || t.apartment_id || "")}')">
-          Starten
+          Öffnen
         </button>
       </div>
     </div>`;
