@@ -314,7 +314,6 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script data-domains="uebergabe-check.de" data-website-id="a4c18987-08e8-480c-a3e7-a19b50232683" defer="" src="https://cloud.umami.is/script.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -1346,51 +1345,6 @@ async function saveTransferOnly(){
 
   alert("Übergabe gespeichert.");
   returnToBusinessDashboard();
-}
-
-async function saveTransferPdf(){
-  const ok=await persistCurrentTransfer();
-  if(!ok) return;
-
-  if(typeof html2pdf === "undefined"){
-    alert("PDF-Speicherung ist gerade nicht verfügbar. Bitte Seite neu laden.");
-    return;
-  }
-
-  const protocol=document.querySelector(".protocol");
-  if(!protocol) return;
-
-  const clone=protocol.cloneNode(true);
-  clone.querySelectorAll(".no-print").forEach(el=>el.remove());
-  clone.style.width="794px";
-  clone.style.background="#fff";
-  clone.style.padding="0";
-  clone.style.margin="0";
-
-  const holder=document.createElement("div");
-  holder.style.position="fixed";
-  holder.style.left="-100000px";
-  holder.style.top="0";
-  holder.style.width="794px";
-  holder.style.background="#fff";
-  holder.appendChild(clone);
-  document.body.appendChild(holder);
-
-  const address=(document.getElementById("address")?.value || "").trim();
-  const safeName=(address || "Uebergabeprotokoll").replace(/[^a-zA-Z0-9äöüÄÖÜß_-]+/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"");
-
-  try{
-    await html2pdf().set({
-      margin:[10,10,10,10],
-      filename:`UebergabeCheck-${safeName || "Uebergabeprotokoll"}.pdf`,
-      image:{type:"jpeg",quality:0.95},
-      html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff"},
-      jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-      pagebreak:{mode:["css","legacy"]}
-    }).from(clone).save();
-  }finally{
-    holder.remove();
-  }
 }
 
 async function printTransfer(){
@@ -3398,5 +3352,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 </script>
+<script src="pdf-export.js?v=1"></script>
 </body>
 </html>
