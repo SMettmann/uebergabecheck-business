@@ -1,0 +1,45 @@
+name: Fix Business login legal layout
+
+on:
+  push:
+    branches:
+      - feature/login-legal-layout
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/login-legal-layout
+
+      - name: Fix login legal footer layout
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+          old = '.business-login{min-height:calc(100vh - 88px);display:flex;align-items:center;justify-content:center;padding:40px 0 70px}'
+          new = '.business-login{min-height:calc(100vh - 88px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0 70px}'
+          if old not in text:
+              raise SystemExit('Expected business-login CSS not found')
+          text = text.replace(old, new, 1)
+          marker = '.login-note{font-size:12px;color:#888;text-align:center;margin-top:16px;line-height:1.5}'
+          if marker not in text:
+              raise SystemExit('Expected login-note CSS not found')
+          text = text.replace(marker, marker + '\n  .login-legal{width:100%;max-width:460px;margin-top:18px}', 1)
+          path.write_text(text, encoding='utf-8')
+          Path('.github/workflows/fix-login-legal-layout.yml').unlink()
+          PY
+
+      - name: Commit layout fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/fix-login-legal-layout.yml
+          git commit -m "Fix Business login legal footer layout"
+          git push origin feature/login-legal-layout
