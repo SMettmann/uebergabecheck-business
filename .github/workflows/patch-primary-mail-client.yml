@@ -1,0 +1,165 @@
+name: Patch primary mail client
+
+on:
+  push:
+    branches:
+      - feature/mail-client-primary
+    paths:
+      - .github/workflows/patch-primary-mail-client.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/mail-client-primary
+
+      - name: Make local mail client the primary email option
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+
+          old_button='''<button class="secondary" onclick="openTransferEmail()" type="button">✉ Per E-Mail senden</button>'''
+          new_button='''<button class="secondary" onclick="openTransferEmail()" type="button">✉ Im E-Mail-Programm öffnen</button>'''
+          assert old_button in s, 'summary email button not found'
+          s=s.replace(old_button,new_button,1)
+
+          old_modal='''    <div class="impressum-head">
+      <div>
+        <h2>Übergabe per E-Mail</h2>
+        <div style="color:#777;font-size:13px;margin-top:4px;">Das Übergabeprotokoll kann an einen Empfänger gesendet werden.</div>
+      </div>
+      <button class="impressum-close" type="button" onclick="closeTransferEmail()">Schließen</button>
+    </div>
+    <label for="transferEmailRecipient">E-Mail-Adresse</label>
+    <input id="transferEmailRecipient" type="email" placeholder="name@beispiel.de" autocomplete="email">
+    <label for="transferEmailSubject">Betreff</label>
+    <input id="transferEmailSubject" type="text" value="ÜbergabeCheck – Übergabeprotokoll">
+    <div class="notice" style="margin-top:14px;">Das aktuelle Übergabeprotokoll wird automatisch als PDF-Anhang mitgesendet.</div>
+    <div class="actions">
+      <button class="secondary" type="button" onclick="closeTransferEmail()">Abbrechen</button>
+      <button class="primary" id="transferEmailSendButton" type="button" onclick="sendTransferEmail()">E-Mail senden</button>
+    </div>
+    <div id="transferEmailError" class="login-error hidden"></div>'''
+          new_modal='''    <div class="impressum-head">
+      <div>
+        <h2>Übergabe per E-Mail</h2>
+        <div style="color:#777;font-size:13px;margin-top:4px;">Standardmäßig öffnet ÜbergabeCheck dein eigenes E-Mail-Programm.</div>
+      </div>
+      <button class="impressum-close" type="button" onclick="closeTransferEmail()">Schließen</button>
+    </div>
+    <label for="transferEmailRecipient">E-Mail-Adresse</label>
+    <input id="transferEmailRecipient" type="email" placeholder="name@beispiel.de" autocomplete="email">
+    <label for="transferEmailSubject">Betreff</label>
+    <input id="transferEmailSubject" type="text" value="ÜbergabeCheck – Übergabeprotokoll">
+    <div class="notice" style="margin-top:14px;">Das PDF wird gespeichert und dein Standard-E-Mail-Programm mit Empfänger, Betreff und Nachricht geöffnet. Den heruntergeladenen PDF-Anhang fügst du anschließend der E-Mail hinzu.</div>
+    <div class="actions" style="flex-wrap:wrap;">
+      <button class="secondary" type="button" onclick="closeTransferEmail()">Abbrechen</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="secondary" id="transferEmailSendButton" type="button" onclick="sendTransferEmail()">Direkt versenden</button>
+        <button class="primary" id="transferEmailClientButton" type="button" onclick="openTransferMailClient()">E-Mail-Programm öffnen</button>
+      </div>
+    </div>
+    <div id="transferEmailError" class="login-error hidden"></div>'''
+          assert old_modal in s, 'email modal not found'
+          s=s.replace(old_modal,new_modal,1)
+
+          marker='''async function sendTransferEmail(){'''
+          assert marker in s, 'sendTransferEmail marker not found'
+          insert='''async function openTransferMailClient(){
+  const recipient=document.getElementById("transferEmailRecipient")?.value.trim() || "";
+  const subject=document.getElementById("transferEmailSubject")?.value.trim() || "ÜbergabeCheck – Übergabeprotokoll";
+  const button=document.getElementById("transferEmailClientButton");
+  const error=document.getElementById("transferEmailError");
+  if(recipient && !recipient.includes("@")){
+    if(error){error.textContent="Bitte eine gültige E-Mail-Adresse eingeben oder das Feld leer lassen.";error.classList.remove("hidden");}
+    return;
+  }
+  if(error) error.classList.add("hidden");
+  if(button){button.disabled=true;button.textContent="Wird vorbereitet …";}
+  try{
+    if(typeof window.createProtocolPdfBlob!=="function") throw new Error("PDF_EXPORT_NOT_READY");
+    const saved=await persistCurrentTransfer();
+    if(!saved) return;
+
+    const pdf=await window.createProtocolPdfBlob();
+    const url=URL.createObjectURL(pdf.blob);
+    const download=document.createElement("a");
+    download.href=url;
+    download.download=pdf.filename || "Uebergabeprotokoll.pdf";
+    document.body.appendChild(download);
+    download.click();
+    download.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+
+    const address=document.getElementById("address")?.value.trim() || "";
+    const message=[
+      "Guten Tag,",
+      "",
+      "anbei erhalten Sie das Übergabeprotokoll zur Wohnungsübergabe.",
+      address ? "Objekt/Wohnung: "+address : "",
+      "",
+      "Viele Grüße"
+    ].filter(Boolean).join("\\n");
+
+    closeTransferEmail();
+    const mailto=`mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    window.location.href=mailto;
+  }catch(err){
+    console.error("E-Mail-Programm öffnen:",err);
+    if(error){
+      error.textContent=err?.message==="PDF_EXPORT_NOT_READY"
+        ? "Das PDF konnte noch nicht erstellt werden. Bitte Seite neu laden und erneut versuchen."
+        : (err?.message || "Das E-Mail-Programm konnte nicht vorbereitet werden.");
+      error.classList.remove("hidden");
+    }
+  }finally{
+    if(button){button.disabled=false;button.textContent="E-Mail-Programm öffnen";}
+  }
+}
+
+'''
+          s=s.replace(marker,insert+marker,1)
+
+          old_final='''if(button){button.disabled=false;button.textContent="E-Mail senden";}'''
+          new_final='''if(button){button.disabled=false;button.textContent="Direkt versenden";}'''
+          assert old_final in s, 'direct send button reset not found'
+          s=s.replace(old_final,new_final,1)
+
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Check inline JavaScript syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('index.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s+[^>]*)?>(.*?)</script>',html,re.S)
+          for i,script in enumerate(scripts):
+              Path(f'/tmp/inline-{i}.js').write_text(script,encoding='utf-8')
+          print(f'Found {len(scripts)} inline scripts')
+          PY
+          for f in /tmp/inline-*.js; do node --check "$f"; done
+          grep -q 'onclick="openTransferMailClient()"' index.html
+          grep -q 'Direkt versenden' index.html
+          grep -q 'Im E-Mail-Programm öffnen' index.html
+
+      - name: Commit patch and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/patch-primary-mail-client.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/patch-primary-mail-client.yml
+          git commit -m "Make local mail client the primary email option"
+          git push origin HEAD:feature/mail-client-primary
