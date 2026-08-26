@@ -809,7 +809,7 @@
 <div class="actions no-print" style="justify-content:flex-end;flex-wrap:wrap;">
 <button class="secondary" onclick="go(4)" type="button">Zurück</button>
 <button class="secondary" onclick="saveTransferOnly()" type="button">Übergabe speichern</button>
-<button class="secondary" onclick="openTransferEmail()" type="button">✉ Per E-Mail senden</button>
+<button class="secondary" onclick="openTransferEmail()" type="button">✉ Im E-Mail-Programm öffnen</button>
 <button class="secondary" onclick="saveTransferPdf()" type="button">PDF speichern</button>
 <button class="primary" onclick="printTransfer()" type="button">Drucken</button>
 </div>
@@ -820,7 +820,7 @@
     <div class="impressum-head">
       <div>
         <h2>Übergabe per E-Mail</h2>
-        <div style="color:#777;font-size:13px;margin-top:4px;">Das Übergabeprotokoll kann an einen Empfänger gesendet werden.</div>
+        <div style="color:#777;font-size:13px;margin-top:4px;">Standardmäßig öffnet ÜbergabeCheck dein eigenes E-Mail-Programm.</div>
       </div>
       <button class="impressum-close" type="button" onclick="closeTransferEmail()">Schließen</button>
     </div>
@@ -828,10 +828,13 @@
     <input id="transferEmailRecipient" type="email" placeholder="name@beispiel.de" autocomplete="email">
     <label for="transferEmailSubject">Betreff</label>
     <input id="transferEmailSubject" type="text" value="ÜbergabeCheck – Übergabeprotokoll">
-    <div class="notice" style="margin-top:14px;">Das aktuelle Übergabeprotokoll wird automatisch als PDF-Anhang mitgesendet.</div>
-    <div class="actions">
+    <div class="notice" style="margin-top:14px;">Das PDF wird gespeichert und dein Standard-E-Mail-Programm mit Empfänger, Betreff und Nachricht geöffnet. Den heruntergeladenen PDF-Anhang fügst du anschließend der E-Mail hinzu.</div>
+    <div class="actions" style="flex-wrap:wrap;">
       <button class="secondary" type="button" onclick="closeTransferEmail()">Abbrechen</button>
-      <button class="primary" id="transferEmailSendButton" type="button" onclick="sendTransferEmail()">E-Mail senden</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="secondary" id="transferEmailSendButton" type="button" onclick="sendTransferEmail()">Direkt versenden</button>
+        <button class="primary" id="transferEmailClientButton" type="button" onclick="openTransferMailClient()">E-Mail-Programm öffnen</button>
+      </div>
     </div>
     <div id="transferEmailError" class="login-error hidden"></div>
   </div>
@@ -1408,6 +1411,58 @@ function blobToBase64(blob){
   });
 }
 
+async function openTransferMailClient(){
+  const recipient=document.getElementById("transferEmailRecipient")?.value.trim() || "";
+  const subject=document.getElementById("transferEmailSubject")?.value.trim() || "ÜbergabeCheck – Übergabeprotokoll";
+  const button=document.getElementById("transferEmailClientButton");
+  const error=document.getElementById("transferEmailError");
+  if(recipient && !recipient.includes("@")){
+    if(error){error.textContent="Bitte eine gültige E-Mail-Adresse eingeben oder das Feld leer lassen.";error.classList.remove("hidden");}
+    return;
+  }
+  if(error) error.classList.add("hidden");
+  if(button){button.disabled=true;button.textContent="Wird vorbereitet …";}
+  try{
+    if(typeof window.createProtocolPdfBlob!=="function") throw new Error("PDF_EXPORT_NOT_READY");
+    const saved=await persistCurrentTransfer();
+    if(!saved) return;
+
+    const pdf=await window.createProtocolPdfBlob();
+    const url=URL.createObjectURL(pdf.blob);
+    const download=document.createElement("a");
+    download.href=url;
+    download.download=pdf.filename || "Uebergabeprotokoll.pdf";
+    document.body.appendChild(download);
+    download.click();
+    download.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+
+    const address=document.getElementById("address")?.value.trim() || "";
+    const message=[
+      "Guten Tag,",
+      "",
+      "anbei erhalten Sie das Übergabeprotokoll zur Wohnungsübergabe.",
+      address ? "Objekt/Wohnung: "+address : "",
+      "",
+      "Viele Grüße"
+    ].filter(Boolean).join("\n");
+
+    closeTransferEmail();
+    const mailto=`mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    window.location.href=mailto;
+  }catch(err){
+    console.error("E-Mail-Programm öffnen:",err);
+    if(error){
+      error.textContent=err?.message==="PDF_EXPORT_NOT_READY"
+        ? "Das PDF konnte noch nicht erstellt werden. Bitte Seite neu laden und erneut versuchen."
+        : (err?.message || "Das E-Mail-Programm konnte nicht vorbereitet werden.");
+      error.classList.remove("hidden");
+    }
+  }finally{
+    if(button){button.disabled=false;button.textContent="E-Mail-Programm öffnen";}
+  }
+}
+
 async function sendTransferEmail(){
   const recipient=document.getElementById("transferEmailRecipient")?.value.trim() || "";
   const subject=document.getElementById("transferEmailSubject")?.value.trim() || "ÜbergabeCheck – Übergabeprotokoll";
@@ -1439,7 +1494,7 @@ async function sendTransferEmail(){
     console.error("E-Mail-Versand:",err);
     if(error){error.textContent=err?.message || "Die E-Mail konnte nicht versendet werden. Bitte später erneut versuchen.";error.classList.remove("hidden");}
   }finally{
-    if(button){button.disabled=false;button.textContent="E-Mail senden";}
+    if(button){button.disabled=false;button.textContent="Direkt versenden";}
   }
 }
 
