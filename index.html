@@ -809,34 +809,12 @@
 <div class="actions no-print" style="justify-content:flex-end;flex-wrap:wrap;">
 <button class="secondary" onclick="go(4)" type="button">Zurück</button>
 <button class="secondary" onclick="saveTransferOnly()" type="button">Übergabe speichern</button>
-<button class="secondary" onclick="openTransferEmail()" type="button">✉ Im E-Mail-Programm öffnen</button>
+<button class="secondary" onclick="openTransferEmail()" type="button">✉ Per E-Mail senden</button>
 <button class="secondary" onclick="saveTransferPdf()" type="button">PDF speichern</button>
 <button class="primary" onclick="printTransfer()" type="button">Drucken</button>
 </div>
 </section>
 </div></div>
-<div class="impressum-overlay hidden" id="transferEmailOverlay" onclick="if(event.target===this) closeTransferEmail()">
-  <div class="impressum-modal" style="max-width:560px;">
-    <div class="impressum-head">
-      <div>
-        <h2>Übergabe per E-Mail</h2>
-        <div style="color:#777;font-size:13px;margin-top:4px;">Standardmäßig öffnet ÜbergabeCheck dein eigenes E-Mail-Programm.</div>
-      </div>
-      <button class="impressum-close" type="button" onclick="closeTransferEmail()">Schließen</button>
-    </div>
-    <label for="transferEmailRecipient">E-Mail-Adresse</label>
-    <input id="transferEmailRecipient" type="email" placeholder="name@beispiel.de" autocomplete="email">
-    <label for="transferEmailSubject">Betreff</label>
-    <input id="transferEmailSubject" type="text" value="ÜbergabeCheck – Übergabeprotokoll">
-    <div class="notice" style="margin-top:14px;">Das PDF wird gespeichert und dein Standard-E-Mail-Programm mit Empfänger, Betreff und Nachricht geöffnet. Den heruntergeladenen PDF-Anhang fügst du anschließend der E-Mail hinzu.</div>
-    <div class="actions" style="flex-wrap:wrap;">
-      <button class="secondary" type="button" onclick="closeTransferEmail()">Abbrechen</button>
-      <button class="primary" id="transferEmailClientButton" type="button" onclick="openTransferMailClient()">E-Mail-Programm öffnen</button>
-    </div>
-    <div id="transferEmailError" class="login-error hidden"></div>
-  </div>
-</div>
-
 <div class="impressum-overlay hidden" id="impressumOverlay" onclick="if(event.target===this) closeImpressum()">
 <div aria-labelledby="impressumTitle" aria-modal="true" class="impressum-modal" role="dialog">
 <div class="impressum-head">
@@ -1402,28 +1380,8 @@ async function printTransfer(){
 
 async function openTransferEmail(){
   const address=document.getElementById("address")?.value.trim() || "";
-  const subject=document.getElementById("transferEmailSubject");
-  if(subject) subject.value=address ? `ÜbergabeCheck – Übergabeprotokoll – ${address}` : "ÜbergabeCheck – Übergabeprotokoll";
-  document.getElementById("transferEmailError")?.classList.add("hidden");
-  document.getElementById("transferEmailOverlay")?.classList.remove("hidden");
-  document.getElementById("transferEmailRecipient")?.focus();
-}
+  const subject=address ? `ÜbergabeCheck – Übergabeprotokoll – ${address}` : "ÜbergabeCheck – Übergabeprotokoll";
 
-function closeTransferEmail(){
-  document.getElementById("transferEmailOverlay")?.classList.add("hidden");
-}
-
-async function openTransferMailClient(){
-  const recipient=document.getElementById("transferEmailRecipient")?.value.trim() || "";
-  const subject=document.getElementById("transferEmailSubject")?.value.trim() || "ÜbergabeCheck – Übergabeprotokoll";
-  const button=document.getElementById("transferEmailClientButton");
-  const error=document.getElementById("transferEmailError");
-  if(recipient && !recipient.includes("@")){
-    if(error){error.textContent="Bitte eine gültige E-Mail-Adresse eingeben oder das Feld leer lassen.";error.classList.remove("hidden");}
-    return;
-  }
-  if(error) error.classList.add("hidden");
-  if(button){button.disabled=true;button.textContent="Wird vorbereitet …";}
   try{
     if(typeof window.createProtocolPdfBlob!=="function") throw new Error("PDF_EXPORT_NOT_READY");
     const saved=await persistCurrentTransfer();
@@ -1439,7 +1397,6 @@ async function openTransferMailClient(){
     download.remove();
     setTimeout(()=>URL.revokeObjectURL(url),2000);
 
-    const address=document.getElementById("address")?.value.trim() || "";
     const message=[
       "Guten Tag,",
       "",
@@ -1449,22 +1406,16 @@ async function openTransferMailClient(){
       "Viele Grüße"
     ].filter(Boolean).join("\n");
 
-    closeTransferEmail();
-    const mailto=`mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    const mailto=`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     window.location.href=mailto;
   }catch(err){
     console.error("E-Mail-Programm öffnen:",err);
-    if(error){
-      error.textContent=err?.message==="PDF_EXPORT_NOT_READY"
-        ? "Das PDF konnte noch nicht erstellt werden. Bitte Seite neu laden und erneut versuchen."
-        : (err?.message || "Das E-Mail-Programm konnte nicht vorbereitet werden.");
-      error.classList.remove("hidden");
-    }
-  }finally{
-    if(button){button.disabled=false;button.textContent="E-Mail-Programm öffnen";}
+    const text=err?.message==="PDF_EXPORT_NOT_READY"
+      ? "Das PDF konnte noch nicht erstellt werden. Bitte Seite neu laden und erneut versuchen."
+      : "Das E-Mail-Programm konnte nicht geöffnet werden.";
+    alert(text);
   }
 }
-
 
 function showSummary(){
   if (window.umami) window.umami.track("Protokoll erstellt");
