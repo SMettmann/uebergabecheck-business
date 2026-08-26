@@ -1,0 +1,253 @@
+name: Fix mail and signature persistence
+
+on:
+  push:
+    branches:
+      - feature/mail-only-signature-fix-v2
+    paths:
+      - .github/workflows/fix-mail-signatures.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/mail-only-signature-fix-v2
+
+      - name: Patch frontend
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+
+          # 1) E-Mail: eigenes Mailprogramm als einzige Option.
+          old_actions='''      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="secondary" id="transferEmailSendButton" type="button" onclick="sendTransferEmail()">Direkt versenden</button>
+        <button class="primary" id="transferEmailClientButton" type="button" onclick="openTransferMailClient()">E-Mail-Programm öffnen</button>
+      </div>'''
+          new_actions='''      <button class="primary" id="transferEmailClientButton" type="button" onclick="openTransferMailClient()">E-Mail-Programm öffnen</button>'''
+          assert old_actions in s, 'mail action block not found'
+          s=s.replace(old_actions,new_actions,1)
+
+          s=s.replace(
+            'Das PDF wird gespeichert und dein Standard-E-Mail-Programm mit Empfänger, Betreff und Nachricht geöffnet. Den heruntergeladenen PDF-Anhang fügst du anschließend der E-Mail hinzu.',
+            'Das PDF wird gespeichert und dein Standard-E-Mail-Programm mit Empfänger, Betreff und Nachricht geöffnet. Den heruntergeladenen PDF-Anhang fügst du anschließend der E-Mail hinzu.'
+          )
+
+          start=s.find('function blobToBase64(blob){')
+          end=s.find('function showSummary(){', start)
+          assert start!=-1 and end!=-1, 'direct mail code block not found'
+          block=s[start:end]
+          mailclient_start=block.find('async function openTransferMailClient(){')
+          mailclient_end=block.find('async function sendTransferEmail(){')
+          assert mailclient_start!=-1 and mailclient_end!=-1, 'mail client/direct send split not found'
+          mailclient_code=block[mailclient_start:mailclient_end]
+          s=s[:start] + mailclient_code + '\n' + s[end:]
+
+          # 2) Persistenz-Zwischenspeicher für Unterschriften und Ort/Datum.
+          marker='''let meterPhotos={electric:[],water:[],gas:[]};'''
+          repl='''let meterPhotos={electric:[],water:[],gas:[]};
+let storedSignatures={tenant:"",landlord:""};
+let storedSignatureDetails={tenantPlace:"",landlordPlace:"",date:""};'''
+          assert marker in s, 'global marker not found'
+          s=s.replace(marker,repl,1)
+
+          # 3) formSnapshot: auch dann Werte behalten, wenn die Signaturfelder gerade nicht im DOM sind.
+          old_fields='''  const ids=["address","date","tenant","landlord","electricNo","electric","waterNo","water","gasNo","gas","keys","notes","tenantSignaturePlace","landlordSignaturePlace","signatureDate"];
+  const fields={};
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    fields[id]=el ? (el.value ?? "") : "";
+  });'''
+          new_fields='''  const ids=["address","date","tenant","landlord","electricNo","electric","waterNo","water","gasNo","gas","keys","notes"];
+  const fields={};
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    fields[id]=el ? (el.value ?? "") : "";
+  });
+  fields.tenantSignaturePlace=document.getElementById("tenantSignaturePlace")?.value ?? storedSignatureDetails.tenantPlace ?? "";
+  fields.landlordSignaturePlace=document.getElementById("landlordSignaturePlace")?.value ?? storedSignatureDetails.landlordPlace ?? "";
+  fields.signatureDate=document.getElementById("signatureDate")?.value ?? storedSignatureDetails.date ?? "";
+  storedSignatureDetails={
+    tenantPlace:fields.tenantSignaturePlace||"",
+    landlordPlace:fields.landlordSignaturePlace||"",
+    date:fields.signatureDate||""
+  };'''
+          assert old_fields in s, 'formSnapshot fields block not found'
+          s=s.replace(old_fields,new_fields,1)
+
+          old_sigs='''    signatures:{
+      tenant:document.getElementById("sigTenant")?.toDataURL("image/png")||"",
+      landlord:document.getElementById("sigLandlord")?.toDataURL("image/png")||""
+    },'''
+          new_sigs='''    signatures:(()=>{
+      const tenantCanvas=document.getElementById("sigTenant");
+      const landlordCanvas=document.getElementById("sigLandlord");
+      storedSignatures={
+        tenant:tenantCanvas ? tenantCanvas.toDataURL("image/png") : (storedSignatures.tenant||""),
+        landlord:landlordCanvas ? landlordCanvas.toDataURL("image/png") : (storedSignatures.landlord||"")
+      };
+      return {...storedSignatures};
+    })(),'''
+          assert old_sigs in s, 'signature snapshot block not found'
+          s=s.replace(old_sigs,new_sigs,1)
+
+          # 4) Beim Laden aus Supabase Werte zuerst intern merken.
+          old_restore='''    meterPhotos=snapshot.meterPhotos&&typeof snapshot.meterPhotos==="object"?JSON.parse(JSON.stringify(snapshot.meterPhotos)):{electric:[],water:[],gas:[]};
+    currentRoom=snapshot.currentRoom||selectedRooms[0]||"Flur";'''
+          new_restore='''    meterPhotos=snapshot.meterPhotos&&typeof snapshot.meterPhotos==="object"?JSON.parse(JSON.stringify(snapshot.meterPhotos)):{electric:[],water:[],gas:[]};
+    storedSignatures={
+      tenant:snapshot.signatures?.tenant||"",
+      landlord:snapshot.signatures?.landlord||""
+    };
+    storedSignatureDetails={
+      tenantPlace:snapshot.fields?.tenantSignaturePlace||"",
+      landlordPlace:snapshot.fields?.landlordSignaturePlace||"",
+      date:snapshot.fields?.signatureDate||""
+    };
+    currentRoom=snapshot.currentRoom||selectedRooms[0]||"Flur";'''
+          assert old_restore in s, 'restore marker not found'
+          s=s.replace(old_restore,new_restore,1)
+
+          # Alte sofortige Canvas-Wiederherstellung entfernen; Canvas existiert zu diesem Zeitpunkt noch nicht.
+          old_restore_canvas='''    if(snapshot.signatures){
+      restoreSignatureImage("sigTenant",snapshot.signatures.tenant||"");
+      restoreSignatureImage("sigLandlord",snapshot.signatures.landlord||"");
+    }
+
+'''
+          assert old_restore_canvas in s, 'early signature restore block not found'
+          s=s.replace(old_restore_canvas,'',1)
+
+          # 5) In der Zusammenfassung Ort/Datum und Unterschriften nach Erzeugung der Felder wieder einsetzen.
+          old_summary_setup='''  setupSignature("sigTenant");
+  setupSignature("sigLandlord");
+
+  const sigDate = document.getElementById("signatureDate");
+  const today = new Date();
+  const localToday = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0,10);
+  if(sigDate && !sigDate.value) sigDate.value = localToday;'''
+          new_summary_setup='''  setupSignature("sigTenant");
+  setupSignature("sigLandlord");
+
+  const tenantPlaceInput=document.getElementById("tenantSignaturePlace");
+  const landlordPlaceInput=document.getElementById("landlordSignaturePlace");
+  const sigDate = document.getElementById("signatureDate");
+  if(tenantPlaceInput) tenantPlaceInput.value=storedSignatureDetails.tenantPlace||"";
+  if(landlordPlaceInput) landlordPlaceInput.value=storedSignatureDetails.landlordPlace||"";
+  if(sigDate) sigDate.value=storedSignatureDetails.date||"";
+
+  const today = new Date();
+  const localToday = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0,10);
+  if(sigDate && !sigDate.value) sigDate.value = localToday;
+
+  restoreSignatureImage("sigTenant",storedSignatures.tenant||"");
+  restoreSignatureImage("sigLandlord",storedSignatures.landlord||"");'''
+          assert old_summary_setup in s, 'summary signature setup block not found'
+          s=s.replace(old_summary_setup,new_summary_setup,1)
+
+          # 6) Eingaben im Signaturbereich sofort in den internen Zustand spiegeln.
+          old_update_details='''    if(tdd) tdd.textContent = formatted;
+    if(ldd) ldd.textContent = formatted;
+    saveDraft();'''
+          new_update_details='''    if(tdd) tdd.textContent = formatted;
+    if(ldd) ldd.textContent = formatted;
+    storedSignatureDetails={
+      tenantPlace:document.getElementById("tenantSignaturePlace")?.value.trim()||"",
+      landlordPlace:document.getElementById("landlordSignaturePlace")?.value.trim()||"",
+      date:sigDate?.value||""
+    };
+    saveDraft();'''
+          assert old_update_details in s, 'signature detail update block not found'
+          s=s.replace(old_update_details,new_update_details,1)
+
+          # 7) Beim Zeichnen/Löschen Unterschriften ebenfalls aktualisieren und Autosave anstoßen.
+          old_stop='''  const stop=()=>{drawing=false;};'''
+          new_stop='''  const stop=()=>{
+    if(!drawing) return;
+    drawing=false;
+    storedSignatures={
+      tenant:document.getElementById("sigTenant")?.toDataURL("image/png")||storedSignatures.tenant||"",
+      landlord:document.getElementById("sigLandlord")?.toDataURL("image/png")||storedSignatures.landlord||""
+    };
+    saveDraft();
+    queueTransferAutosave();
+  };'''
+          assert old_stop in s, 'signature stop marker not found'
+          s=s.replace(old_stop,new_stop,1)
+
+          old_clear='''function clearSignature(id){
+  const c=document.getElementById(id); if(!c)return;
+  c.getContext("2d").clearRect(0,0,c.width,c.height);
+  saveDraft();
+}'''
+          new_clear='''function clearSignature(id){
+  const c=document.getElementById(id); if(!c)return;
+  c.getContext("2d").clearRect(0,0,c.width,c.height);
+  if(id==="sigTenant") storedSignatures.tenant="";
+  if(id==="sigLandlord") storedSignatures.landlord="";
+  saveDraft();
+  queueTransferAutosave();
+}'''
+          assert old_clear in s, 'clearSignature block not found'
+          s=s.replace(old_clear,new_clear,1)
+
+          # 8) Passwort-Reset: gleiche Passwortwahl nicht fälschlich als abgelaufenen Link darstellen.
+          old_reset='''  if(updateError){
+    console.error("Passwort ändern:",updateError);
+    if(error){error.textContent="Das Passwort konnte nicht geändert werden. Bitte den Reset-Link erneut öffnen.";error.classList.remove("hidden");}
+    return;
+  }'''
+          new_reset='''  if(updateError){
+    console.error("Passwort ändern:",updateError);
+    const msg=String(updateError.message||"").toLowerCase();
+    let text="Das Passwort konnte nicht geändert werden.";
+    if(msg.includes("same") || msg.includes("different") || msg.includes("previous") || msg.includes("old password")){
+      text="Das neue Passwort muss sich vom bisherigen Passwort unterscheiden.";
+    }else if(msg.includes("expired") || msg.includes("invalid") || msg.includes("token")){
+      text="Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an.";
+    }
+    if(error){error.textContent=text;error.classList.remove("hidden");}
+    return;
+  }'''
+          assert old_reset in s, 'password reset error block not found'
+          s=s.replace(old_reset,new_reset,1)
+
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Validate
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('index.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s+[^>]*)?>(.*?)</script>',html,re.S)
+          for i,script in enumerate(scripts):
+              Path(f'/tmp/inline-{i}.js').write_text(script,encoding='utf-8')
+          print(f'Found {len(scripts)} inline scripts')
+          PY
+          for f in /tmp/inline-*.js; do node --check "$f"; done
+          ! grep -q 'sendTransferEmail' index.html
+          ! grep -q 'Direkt versenden' index.html
+          grep -q 'storedSignatureDetails' index.html
+          grep -q 'storedSignatures' index.html
+          grep -q 'E-Mail-Programm öffnen' index.html
+
+      - name: Commit and clean up workflow
+        shell: bash
+        run: |
+          rm .github/workflows/fix-mail-signatures.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/fix-mail-signatures.yml
+          git commit -m "Use local mail client and persist signatures"
+          git push origin HEAD:feature/mail-only-signature-fix-v2
