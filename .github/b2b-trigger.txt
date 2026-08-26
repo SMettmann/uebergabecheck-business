@@ -1,1 +1,1 @@
-Retry B2B legal workflow after GitHub runner startup failure.
+Trigger B2B legal patch runner.
