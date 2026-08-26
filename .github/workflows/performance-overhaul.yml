@@ -16,6 +16,15 @@ jobs:
         with:
           ref: feature/performance-overhaul
 
+      - name: Preserve JavaScript escapes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/performance_patch.py')
+          s=p.read_text(encoding='utf-8')
+          p.write_text(s.replace(", '''", ", r'''"),encoding='utf-8')
+          PY
+
       - name: Apply performance patch
         run: python scripts/performance_patch.py
 
