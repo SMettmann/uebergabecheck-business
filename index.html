@@ -1866,7 +1866,14 @@ async function updateBusinessPassword(event){
   if(button){button.disabled=false;button.textContent="Passwort speichern →";}
   if(updateError){
     console.error("Passwort ändern:",updateError);
-    if(error){error.textContent="Das Passwort konnte nicht geändert werden. Bitte den Reset-Link erneut öffnen.";error.classList.remove("hidden");}
+    const resetMessage=String(updateError?.message || "").toLowerCase();
+    let userMessage="Das Passwort konnte nicht geändert werden.";
+    if(resetMessage.includes("different from the old password") || resetMessage.includes("same password") || resetMessage.includes("should be different")){
+      userMessage="Das neue Passwort darf nicht mit deinem bisherigen Passwort identisch sein. Bitte wähle ein anderes Passwort.";
+    }else if(resetMessage.includes("expired") || resetMessage.includes("invalid") || resetMessage.includes("session")){
+      userMessage="Der Reset-Link ist nicht mehr gültig. Bitte fordere einen neuen Reset-Link an.";
+    }
+    if(error){error.textContent=userMessage;error.classList.remove("hidden");}
     return;
   }
   await supabaseClient.auth.signOut();
