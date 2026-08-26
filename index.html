@@ -2028,10 +2028,17 @@ function refreshBusinessSubscriptionUI(){
     action.classList.remove("hidden");
   } else if(state.effectiveStatus==="active") {
     notice.classList.add("active");
-    title.textContent="ÜbergabeCheck Business aktiv";
     const end=businessSubscription?.current_period_end?new Date(businessSubscription.current_period_end).toLocaleDateString("de-DE"):"";
-    text.textContent=end?`Aktiver Tarif · aktueller Zeitraum bis ${end}`:"Aktiver Tarif · 29,99 € / Monat";
-    pill.textContent="AKTIV";
+    const isCancelled=!!businessSubscription?.cancel_at_period_end;
+    if(isCancelled){
+      title.textContent="Abo gekündigt – Zugang bleibt aktiv";
+      text.textContent=end?`Gekündigt zum ${end} · bis dahin kannst du ÜbergabeCheck Business vollständig nutzen.`:"Gekündigt · Zugang bleibt bis zum Ende des bezahlten Zeitraums aktiv.";
+      pill.textContent="GEKÜNDIGT";
+    }else{
+      title.textContent="ÜbergabeCheck Business aktiv";
+      text.textContent=end?`Aktiver Tarif · aktueller Zeitraum bis ${end}`:"Aktiver Tarif · 29,99 € / Monat";
+      pill.textContent="AKTIV";
+    }
     action.textContent="Abo verwalten";
     action.onclick=openStripeCustomerPortal;
     action.classList.remove("hidden");
