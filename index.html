@@ -831,10 +831,7 @@
     <div class="notice" style="margin-top:14px;">Das PDF wird gespeichert und dein Standard-E-Mail-Programm mit Empfänger, Betreff und Nachricht geöffnet. Den heruntergeladenen PDF-Anhang fügst du anschließend der E-Mail hinzu.</div>
     <div class="actions" style="flex-wrap:wrap;">
       <button class="secondary" type="button" onclick="closeTransferEmail()">Abbrechen</button>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
-        <button class="secondary" id="transferEmailSendButton" type="button" onclick="sendTransferEmail()">Direkt versenden</button>
-        <button class="primary" id="transferEmailClientButton" type="button" onclick="openTransferMailClient()">E-Mail-Programm öffnen</button>
-      </div>
+      <button class="primary" id="transferEmailClientButton" type="button" onclick="openTransferMailClient()">E-Mail-Programm öffnen</button>
     </div>
     <div id="transferEmailError" class="login-error hidden"></div>
   </div>
@@ -967,6 +964,8 @@ let currentRoom=selectedRooms[0];
 let currentState="ok";
 let photoURLs=[];
 let meterPhotos={electric:[],water:[],gas:[]};
+let storedSignatures={tenant:"",landlord:""};
+let storedSignatureDetails={tenantPlace:"",landlordPlace:"",date:""};
 
 document.getElementById("date").value=new Date().toISOString().slice(0,10);
 
@@ -1123,12 +1122,16 @@ function getTenantSurname(){
 }
 
 function formSnapshot(){
-  const ids=["address","date","tenant","landlord","electricNo","electric","waterNo","water","gasNo","gas","keys","notes","tenantSignaturePlace","landlordSignaturePlace","signatureDate"];
+  const ids=["address","date","tenant","landlord","electricNo","electric","waterNo","water","gasNo","gas","keys","notes"];
   const fields={};
   ids.forEach(id=>{
     const el=document.getElementById(id);
     fields[id]=el ? (el.value ?? "") : "";
   });
+  fields.tenantSignaturePlace=document.getElementById("tenantSignaturePlace")?.value ?? storedSignatureDetails.tenantPlace ?? "";
+  fields.landlordSignaturePlace=document.getElementById("landlordSignaturePlace")?.value ?? storedSignatureDetails.landlordPlace ?? "";
+  fields.signatureDate=document.getElementById("signatureDate")?.value ?? storedSignatureDetails.date ?? "";
+  storedSignatureDetails={tenantPlace:fields.tenantSignaturePlace||"",landlordPlace:fields.landlordSignaturePlace||"",date:fields.signatureDate||""};
   return {
     version:2,
     fields,
@@ -1141,10 +1144,12 @@ function formSnapshot(){
     currentRoom:currentRoom||"",
     currentState:currentState||"ok",
     photoURLs:Array.isArray(photoURLs)?[...photoURLs]:[],
-    signatures:{
-      tenant:document.getElementById("sigTenant")?.toDataURL("image/png")||"",
-      landlord:document.getElementById("sigLandlord")?.toDataURL("image/png")||""
-    },
+    signatures:(()=>{
+      const tenantCanvas=document.getElementById("sigTenant");
+      const landlordCanvas=document.getElementById("sigLandlord");
+      storedSignatures={tenant:tenantCanvas?tenantCanvas.toDataURL("image/png"):(storedSignatures.tenant||""),landlord:landlordCanvas?landlordCanvas.toDataURL("image/png"):(storedSignatures.landlord||"")};
+      return {...storedSignatures};
+    })(),
     savedAt:new Date().toISOString()
   };
 }
@@ -1183,6 +1188,8 @@ function restoreTransferSnapshot(snapshot){
     customRooms=Array.isArray(snapshot.customRooms)?[...snapshot.customRooms]:[];
     roomData=snapshot.roomData&&typeof snapshot.roomData==="object"?JSON.parse(JSON.stringify(snapshot.roomData)):{};
     meterPhotos=snapshot.meterPhotos&&typeof snapshot.meterPhotos==="object"?JSON.parse(JSON.stringify(snapshot.meterPhotos)):{electric:[],water:[],gas:[]};
+    storedSignatures={tenant:snapshot.signatures?.tenant||"",landlord:snapshot.signatures?.landlord||""};
+    storedSignatureDetails={tenantPlace:snapshot.fields?.tenantSignaturePlace||"",landlordPlace:snapshot.fields?.landlordSignaturePlace||"",date:snapshot.fields?.signatureDate||""};
     currentRoom=snapshot.currentRoom||selectedRooms[0]||"Flur";
     currentState=snapshot.currentState||roomData[currentRoom]?.state||"ok";
     photoURLs=Array.isArray(snapshot.photoURLs)?[...snapshot.photoURLs]:(roomData[currentRoom]?.photos||[]);
@@ -1190,11 +1197,6 @@ function restoreTransferSnapshot(snapshot){
     renderRooms();
     updateCustomRoomNote();
     renderAllMeterPhotos();
-
-    if(snapshot.signatures){
-      restoreSignatureImage("sigTenant",snapshot.signatures.tenant||"");
-      restoreSignatureImage("sigLandlord",snapshot.signatures.landlord||"");
-    }
 
     document.querySelectorAll('[id^="step"]').forEach(x=>x.classList.add("hidden"));
     const step1=document.getElementById("step1");
@@ -1272,7 +1274,13 @@ function setupSignature(id){
     const p=point(e.clientX,e.clientY);
     ctx.lineTo(p.x,p.y); ctx.stroke();
   });
-  const stop=()=>{drawing=false;};
+  const stop=()=>{
+    if(!drawing) return;
+    drawing=false;
+    storedSignatures={tenant:document.getElementById("sigTenant")?.toDataURL("image/png")||storedSignatures.tenant||"",landlord:document.getElementById("sigLandlord")?.toDataURL("image/png")||storedSignatures.landlord||""};
+    saveDraft();
+    queueTransferAutosave();
+  };
   c.addEventListener("pointerup",stop);
   c.addEventListener("pointercancel",stop);
   c.addEventListener("pointerleave",e=>{if(e.buttons===0)drawing=false;});
@@ -1280,7 +1288,10 @@ function setupSignature(id){
 function clearSignature(id){
   const c=document.getElementById(id); if(!c)return;
   c.getContext("2d").clearRect(0,0,c.width,c.height);
+  if(id==="sigTenant") storedSignatures.tenant="";
+  if(id==="sigLandlord") storedSignatures.landlord="";
   saveDraft();
+  queueTransferAutosave();
 }
 let transferAutosaveTimer=null;
 
@@ -1402,15 +1413,6 @@ function closeTransferEmail(){
   document.getElementById("transferEmailOverlay")?.classList.add("hidden");
 }
 
-function blobToBase64(blob){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=()=>resolve(String(reader.result||"").split(",")[1]||"");
-    reader.onerror=reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
 async function openTransferMailClient(){
   const recipient=document.getElementById("transferEmailRecipient")?.value.trim() || "";
   const subject=document.getElementById("transferEmailSubject")?.value.trim() || "ÜbergabeCheck – Übergabeprotokoll";
@@ -1463,40 +1465,6 @@ async function openTransferMailClient(){
   }
 }
 
-async function sendTransferEmail(){
-  const recipient=document.getElementById("transferEmailRecipient")?.value.trim() || "";
-  const subject=document.getElementById("transferEmailSubject")?.value.trim() || "ÜbergabeCheck – Übergabeprotokoll";
-  const button=document.getElementById("transferEmailSendButton");
-  const error=document.getElementById("transferEmailError");
-  if(!recipient || !recipient.includes("@")){ if(error){error.textContent="Bitte eine gültige E-Mail-Adresse eingeben.";error.classList.remove("hidden");} return; }
-  if(!supabaseClient){ if(error){error.textContent="Der E-Mail-Dienst ist aktuell nicht verfügbar.";error.classList.remove("hidden");} return; }
-  if(button){button.disabled=true;button.textContent="Wird gesendet …";}
-  try{
-    if(typeof window.createProtocolPdfBlob!=="function") throw new Error("PDF_EXPORT_NOT_READY");
-    const saved=await persistCurrentTransfer();
-    if(!saved) return;
-    const pdf=await window.createProtocolPdfBlob();
-    const contentBase64=await blobToBase64(pdf.blob);
-    if(!contentBase64) throw new Error("PDF_ATTACHMENT_EMPTY");
-    const address=document.getElementById("address")?.value.trim() || "";
-    const message=["Hallo,","","anbei erhältst du das Übergabeprotokoll als PDF.",address?"Objekt/Wohnung: "+address:"","","Viele Grüße","ÜbergabeCheck Business"].filter(Boolean).join("\n");
-    const {data,error:invokeError}=await supabaseClient.functions.invoke("send-transfer-email",{body:{
-      to:recipient,
-      subject,
-      message,
-      attachment:{filename:pdf.filename,contentBase64}
-    }});
-    if(invokeError) throw invokeError;
-    if(data?.error) throw new Error(data.error);
-    closeTransferEmail();
-    alert("E-Mail mit PDF-Anhang wurde versendet.");
-  }catch(err){
-    console.error("E-Mail-Versand:",err);
-    if(error){error.textContent=err?.message || "Die E-Mail konnte nicht versendet werden. Bitte später erneut versuchen.";error.classList.remove("hidden");}
-  }finally{
-    if(button){button.disabled=false;button.textContent="Direkt versenden";}
-  }
-}
 
 function showSummary(){
   if (window.umami) window.umami.track("Protokoll erstellt");
@@ -1608,10 +1576,17 @@ function showSummary(){
   setupSignature("sigTenant");
   setupSignature("sigLandlord");
 
+  const tenantPlaceInput=document.getElementById("tenantSignaturePlace");
+  const landlordPlaceInput=document.getElementById("landlordSignaturePlace");
   const sigDate = document.getElementById("signatureDate");
+  if(tenantPlaceInput) tenantPlaceInput.value=storedSignatureDetails.tenantPlace||"";
+  if(landlordPlaceInput) landlordPlaceInput.value=storedSignatureDetails.landlordPlace||"";
+  if(sigDate) sigDate.value=storedSignatureDetails.date||"";
   const today = new Date();
   const localToday = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0,10);
   if(sigDate && !sigDate.value) sigDate.value = localToday;
+  restoreSignatureImage("sigTenant",storedSignatures.tenant||"");
+  restoreSignatureImage("sigLandlord",storedSignatures.landlord||"");
 
   const updateSignatureDetails = () => {
     const formatted = sigDate && sigDate.value
@@ -1627,6 +1602,7 @@ function showSummary(){
     if(ld) ld.textContent = landlordPlace;
     if(tdd) tdd.textContent = formatted;
     if(ldd) ldd.textContent = formatted;
+    storedSignatureDetails={tenantPlace:document.getElementById("tenantSignaturePlace")?.value.trim()||"",landlordPlace:document.getElementById("landlordSignaturePlace")?.value.trim()||"",date:sigDate?.value||""};
     saveDraft();
   };
   sigDate?.addEventListener("change", updateSignatureDetails);
@@ -1866,7 +1842,11 @@ async function updateBusinessPassword(event){
   if(button){button.disabled=false;button.textContent="Passwort speichern →";}
   if(updateError){
     console.error("Passwort ändern:",updateError);
-    if(error){error.textContent="Das Passwort konnte nicht geändert werden. Bitte den Reset-Link erneut öffnen.";error.classList.remove("hidden");}
+    const msg=String(updateError.message||"").toLowerCase();
+    let text="Das Passwort konnte nicht geändert werden.";
+    if(msg.includes("same")||msg.includes("different")||msg.includes("previous")||msg.includes("old password")) text="Das neue Passwort muss sich vom bisherigen Passwort unterscheiden.";
+    else if(msg.includes("expired")||msg.includes("invalid")||msg.includes("token")) text="Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an.";
+    if(error){error.textContent=text;error.classList.remove("hidden");}
     return;
   }
   await supabaseClient.auth.signOut();
