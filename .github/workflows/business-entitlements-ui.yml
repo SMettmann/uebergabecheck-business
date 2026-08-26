@@ -1,0 +1,94 @@
+name: Business entitlements UI
+on:
+  push:
+    branches: [feature/business-entitlements-ui]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/business-entitlements-ui
+      - name: Add secure trial and entitlement UI
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+
+          def rep(old,new,count=1):
+              global s
+              if old not in s:
+                  raise SystemExit('Anchor not found: '+old[:120])
+              s=s.replace(old,new,count)
+
+          css_anchor='  .dashboard-nav button.active{background:#111;color:#fff}\n'
+          css=css_anchor+'''  .subscription-notice{display:flex;justify-content:space-between;align-items:center;gap:18px;background:#fff;border:1px solid #e2e3e6;border-radius:16px;padding:14px 16px;margin-bottom:18px}\n  .subscription-notice strong{display:block;font-size:14px;margin-bottom:3px}\n  .subscription-notice span{display:block;color:#666;font-size:12px;line-height:1.45}\n  .subscription-notice.trial{background:#f7f8ff;border-color:#dfe4f5}\n  .subscription-notice.active{background:#f1f8f3;border-color:#d8eadc}\n  .subscription-notice.expired{background:#fff7e8;border-color:#ecd7ae}\n  .subscription-status-pill{font-size:11px;font-weight:850;padding:7px 10px;border-radius:999px;background:#ececef;white-space:nowrap}\n  .business-readonly input,.business-readonly textarea,.business-readonly select{background:#f5f5f6;color:#666;cursor:not-allowed}\n  .business-readonly canvas{pointer-events:none;opacity:.8}\n  @media(max-width:650px){.subscription-notice{align-items:flex-start;flex-direction:column;gap:9px}.subscription-status-pill{align-self:flex-start}}\n'''
+          rep(css_anchor,css)
+
+          markup_anchor='</div>\n<div class="dashboard-nav" id="businessMainNav">'
+          markup='''</div>\n<div class="subscription-notice hidden" id="businessSubscriptionNotice">\n  <div><strong id="businessSubscriptionTitle">Tarif wird geladen …</strong><span id="businessSubscriptionText">Bitte einen Moment.</span></div>\n  <div class="subscription-status-pill" id="businessSubscriptionPill">…</div>\n</div>\n<div class="dashboard-nav" id="businessMainNav">'''
+          rep(markup_anchor,markup)
+
+          state_anchor='let businessCompanyProfile={name:"",contact_name:"",street:"",zip:"",city:"",phone:"",email:"",website:"",logo_data:""};\nwindow.businessCompanyProfile=businessCompanyProfile;\n'
+          state=state_anchor+'let businessSubscription=null;\nwindow.businessSubscription=businessSubscription;\n'
+          rep(state_anchor,state)
+
+          funcs='''function getBusinessAccessState(){\n  const s=businessSubscription;\n  if(!s)return {hasAccess:false,effectiveStatus:"loading",daysRemaining:null};\n  const now=Date.now();\n  const trialEnd=s.trial_ends_at?new Date(s.trial_ends_at).getTime():0;\n  const periodEnd=s.current_period_end?new Date(s.current_period_end).getTime():0;\n  if(s.status==="active" && (!periodEnd || periodEnd>now)) return {hasAccess:true,effectiveStatus:"active",daysRemaining:null};\n  if(s.status==="trial" && trialEnd>now){\n    const days=Math.max(1,Math.ceil((trialEnd-now)/86400000));\n    return {hasAccess:true,effectiveStatus:"trial",daysRemaining:days};\n  }\n  return {hasAccess:false,effectiveStatus:"expired",daysRemaining:0};\n}\n\nfunction businessHasWriteAccess(){\n  return getBusinessAccessState().hasAccess;\n}\n\nfunction requireBusinessWriteAccess(){\n  if(businessHasWriteAccess())return true;\n  const state=getBusinessAccessState();\n  if(state.effectiveStatus==="loading") alert("Der Tarifstatus wird noch geladen. Bitte versuche es gleich noch einmal.");\n  else alert("Deine Testphase ist abgelaufen. Deine gespeicherten Daten bleiben verfügbar. Um weiterzuarbeiten, muss ÜbergabeCheck Business freigeschaltet werden.");\n  return false;\n}\n\nfunction applyBusinessAccessToUI(){\n  if(!businessSubscription)return;\n  const locked=!businessHasWriteAccess();\n  const app=document.getElementById("appContent");\n  app?.classList.toggle("business-readonly",locked);\n  if(app){\n    app.querySelectorAll("input,textarea,select").forEach(el=>{el.disabled=locked;});\n  }\n}\n\nfunction refreshBusinessSubscriptionUI(){\n  const notice=document.getElementById("businessSubscriptionNotice");\n  const title=document.getElementById("businessSubscriptionTitle");\n  const text=document.getElementById("businessSubscriptionText");\n  const pill=document.getElementById("businessSubscriptionPill");\n  if(!notice||!title||!text||!pill)return;\n  notice.classList.remove("hidden","trial","active","expired");\n  const state=getBusinessAccessState();\n  if(state.effectiveStatus==="trial") {\n    notice.classList.add("trial");\n    const end=businessSubscription?.trial_ends_at?new Date(businessSubscription.trial_ends_at).toLocaleDateString("de-DE"):"–";\n    title.textContent="Kostenlose Testphase aktiv";\n    text.textContent=`Noch ${state.daysRemaining} ${state.daysRemaining===1?"Tag":"Tage"} · endet am ${end} · danach 29,99 € / Monat`;\n    pill.textContent="TESTPHASE";\n  } else if(state.effectiveStatus==="active") {\n    notice.classList.add("active");\n    title.textContent="ÜbergabeCheck Business aktiv";\n    const end=businessSubscription?.current_period_end?new Date(businessSubscription.current_period_end).toLocaleDateString("de-DE"):"";\n    text.textContent=end?`Aktiver Tarif · aktueller Zeitraum bis ${end}`:"Aktiver Tarif · 29,99 € / Monat";\n    pill.textContent="AKTIV";\n  } else if(state.effectiveStatus==="loading") {\n    title.textContent="Tarif wird geladen …";\n    text.textContent="Bitte einen Moment.";\n    pill.textContent="…";\n  } else {\n    notice.classList.add("expired");\n    title.textContent="Testphase abgelaufen";\n    text.textContent="Deine gespeicherten Daten bleiben verfügbar. Für neue oder geänderte Daten ist eine Freischaltung erforderlich.";\n    pill.textContent="ABGELAUFEN";\n  }\n  applyBusinessAccessToUI();\n}\n\nasync function loadBusinessSubscription(companyId){\n  if(!companyId||!supabaseClient)return null;\n  const {data,error}=await supabaseClient\n    .from("company_subscriptions")\n    .select("company_id,plan_code,status,trial_started_at,trial_ends_at,current_period_end,cancel_at_period_end")\n    .eq("company_id",companyId)\n    .single();\n  if(error)throw error;\n  businessSubscription=data||null;\n  window.businessSubscription=businessSubscription;\n  refreshBusinessSubscriptionUI();\n  return businessSubscription;\n}\n\n'''
+          rep('async function loadBusinessData(user){\n',funcs+'async function loadBusinessData(user){\n')
+
+          rep('  if(businessDataLoadedForUser===user.id){renderBusinessObjects();updateBusinessStats();return;}\n','  if(businessDataLoadedForUser===user.id){if(businessCompanyId)await loadBusinessSubscription(businessCompanyId);renderBusinessObjects();updateBusinessStats();return;}\n')
+          rep('    await loadBusinessCompanyProfile(companyId);\n    const {data:objects,error:objectError}=','    await loadBusinessCompanyProfile(companyId);\n    await loadBusinessSubscription(companyId);\n    const {data:objects,error:objectError}=')
+
+          guards={
+            'function startBusinessTransfer(){\n':'function startBusinessTransfer(){\n  if(!requireBusinessWriteAccess())return;\n',
+            'async function confirmTransferStart(){\n':'async function confirmTransferStart(){\n  if(!requireBusinessWriteAccess())return;\n',
+            'function showObjectForm(){\n':'function showObjectForm(){\n  if(!requireBusinessWriteAccess())return;\n',
+            'function editObject(id){\n':'function editObject(id){\n  if(!requireBusinessWriteAccess())return;\n',
+            'async function saveObject(){\n':'async function saveObject(){\n  if(!requireBusinessWriteAccess())return;\n',
+            'async function deleteObject(id){\n':'async function deleteObject(id){\n  if(!requireBusinessWriteAccess())return;\n',
+            'function quickAddApartment(){\n':'function quickAddApartment(){\n  if(!requireBusinessWriteAccess())return;\n',
+            'function showApartmentForm(){\n':'function showApartmentForm(){\n  if(!requireBusinessWriteAccess())return;\n',
+            'function editApartment(id){\n':'function editApartment(id){\n  if(!requireBusinessWriteAccess())return;\n',
+            'function editSelectedApartment(){\n':'function editSelectedApartment(){\n  if(!requireBusinessWriteAccess())return;\n',
+            'async function saveApartment(){\n':'async function saveApartment(){\n  if(!requireBusinessWriteAccess())return;\n',
+            'async function deleteApartment(id){\n':'async function deleteApartment(id){\n  if(!requireBusinessWriteAccess())return;\n',
+            'async function startApartmentTransfer(){\n':'async function startApartmentTransfer(){\n  if(!requireBusinessWriteAccess())return;\n',
+            'async function saveDefectChanges(){\n':'async function saveDefectChanges(){\n  if(!requireBusinessWriteAccess())return;\n',
+            'async function saveTransferDataToDatabase(showMessage=false){\n':'async function saveTransferDataToDatabase(showMessage=false){\n  if(!businessHasWriteAccess()){if(showMessage)requireBusinessWriteAccess();return false;}\n',
+            'async function persistCurrentTransfer(){\n':'async function persistCurrentTransfer(){\n  if(!requireBusinessWriteAccess())return false;\n',
+            'function startApp(){\n  pushTransferHistoryEntry();\n':'function startApp(){\n  pushTransferHistoryEntry();\n  applyBusinessAccessToUI();\n'
+          }
+          for old,new in guards.items(): rep(old,new)
+
+          rep('  businessCompanyId = null;\n','  businessCompanyId = null;\n  businessSubscription = null;\n  window.businessSubscription = null;\n',1)
+
+          p.write_text(s)
+          PY
+      - name: Validate
+        run: |
+          grep -q 'company_subscriptions' index.html
+          grep -q 'Kostenlose Testphase aktiv' index.html
+          grep -q 'requireBusinessWriteAccess' index.html
+          grep -q 'businessSubscriptionNotice' index.html
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          start=s.rfind('<script>')
+          end=s.rfind('</script>')
+          if start < 0 or end < start:
+              raise SystemExit('script block not found')
+          Path('/tmp/app.js').write_text(s[start+8:end])
+          PY
+          node --check /tmp/app.js
+      - name: Commit result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/business-entitlements-ui.yml
+          git add index.html
+          git commit -m 'Add secure Business trial access UI'
+          git push origin feature/business-entitlements-ui
