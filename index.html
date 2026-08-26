@@ -250,6 +250,16 @@
   .dashboard-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
   .dashboard-nav button{background:#ececef;color:#222;padding:10px 13px;font-size:13px}
   .dashboard-nav button.active{background:#111;color:#fff}
+  .subscription-notice{display:flex;justify-content:space-between;align-items:center;gap:18px;background:#fff;border:1px solid #e2e3e6;border-radius:16px;padding:14px 16px;margin-bottom:18px}
+  .subscription-notice strong{display:block;font-size:14px;margin-bottom:3px}
+  .subscription-notice span{display:block;color:#666;font-size:12px;line-height:1.45}
+  .subscription-notice.trial{background:#f7f8ff;border-color:#dfe4f5}
+  .subscription-notice.active{background:#f1f8f3;border-color:#d8eadc}
+  .subscription-notice.expired{background:#fff7e8;border-color:#ecd7ae}
+  .subscription-status-pill{font-size:11px;font-weight:850;padding:7px 10px;border-radius:999px;background:#ececef;white-space:nowrap}
+  .business-readonly input,.business-readonly textarea,.business-readonly select{background:#f5f5f6;color:#666;cursor:not-allowed}
+  .business-readonly canvas{pointer-events:none;opacity:.8}
+  @media(max-width:650px){.subscription-notice{align-items:flex-start;flex-direction:column;gap:9px}.subscription-status-pill{align-self:flex-start}}
   @media(max-width:800px){
     .dashboard-grid{grid-template-columns:1fr 1fr}
     .dashboard-main{grid-template-columns:1fr}
@@ -506,6 +516,10 @@
 <button class="secondary" onclick="businessLogout()" type="button">Abmelden</button>
 <button class="primary" onclick="startBusinessTransfer()" type="button">＋ Neue Übergabe</button>
 </div>
+</div>
+<div class="subscription-notice hidden" id="businessSubscriptionNotice">
+  <div><strong id="businessSubscriptionTitle">Tarif wird geladen …</strong><span id="businessSubscriptionText">Bitte einen Moment.</span></div>
+  <div class="subscription-status-pill" id="businessSubscriptionPill">…</div>
 </div>
 <div class="dashboard-nav" id="businessMainNav">
 <button class="active" type="button" onclick="navigateBusinessTab('dashboard',this)">⌂ Dashboard</button>
@@ -1423,6 +1437,7 @@ function buildTransferMetadata(snapshot){
 }
 
 async function saveTransferDataToDatabase(showMessage=false){
+  if(!businessHasWriteAccess()){if(showMessage)requireBusinessWriteAccess();return false;}
   const transferId=window.currentBusinessTransferId;
   if(!transferId || !supabaseClient) return false;
   try{
@@ -1448,6 +1463,7 @@ async function saveTransferDataToDatabase(showMessage=false){
 }
 
 async function persistCurrentTransfer(){
+  if(!requireBusinessWriteAccess())return false;
   const transferId=window.currentBusinessTransferId;
   const apartmentId=window.currentBusinessApartmentId||selectedApartmentId;
   if(!transferId||!apartmentId){alert("Diese Übergabe ist noch nicht mit einer Wohnung verknüpft.");return false;}
@@ -1778,6 +1794,8 @@ window.addEventListener("popstate", async () => {
 let businessCompanyId = null;
 let businessCompanyProfile={name:"",contact_name:"",street:"",zip:"",city:"",phone:"",email:"",website:"",logo_data:""};
 window.businessCompanyProfile=businessCompanyProfile;
+let businessSubscription=null;
+window.businessSubscription=businessSubscription;
 
 let businessDataLoading = false;
 let businessDataLoadedForUser = null;
@@ -1950,14 +1968,98 @@ function companyLetterheadHtml(){
   </div>`;
 }
 
+function getBusinessAccessState(){
+  const s=businessSubscription;
+  if(!s)return {hasAccess:false,effectiveStatus:"loading",daysRemaining:null};
+  const now=Date.now();
+  const trialEnd=s.trial_ends_at?new Date(s.trial_ends_at).getTime():0;
+  const periodEnd=s.current_period_end?new Date(s.current_period_end).getTime():0;
+  if(s.status==="active" && (!periodEnd || periodEnd>now)) return {hasAccess:true,effectiveStatus:"active",daysRemaining:null};
+  if(s.status==="trial" && trialEnd>now){
+    const days=Math.max(1,Math.ceil((trialEnd-now)/86400000));
+    return {hasAccess:true,effectiveStatus:"trial",daysRemaining:days};
+  }
+  return {hasAccess:false,effectiveStatus:"expired",daysRemaining:0};
+}
+
+function businessHasWriteAccess(){
+  return getBusinessAccessState().hasAccess;
+}
+
+function requireBusinessWriteAccess(){
+  if(businessHasWriteAccess())return true;
+  const state=getBusinessAccessState();
+  if(state.effectiveStatus==="loading") alert("Der Tarifstatus wird noch geladen. Bitte versuche es gleich noch einmal.");
+  else alert("Deine Testphase ist abgelaufen. Deine gespeicherten Daten bleiben verfügbar. Um weiterzuarbeiten, muss ÜbergabeCheck Business freigeschaltet werden.");
+  return false;
+}
+
+function applyBusinessAccessToUI(){
+  if(!businessSubscription)return;
+  const locked=!businessHasWriteAccess();
+  const app=document.getElementById("appContent");
+  app?.classList.toggle("business-readonly",locked);
+  if(app){
+    app.querySelectorAll("input,textarea,select").forEach(el=>{el.disabled=locked;});
+  }
+}
+
+function refreshBusinessSubscriptionUI(){
+  const notice=document.getElementById("businessSubscriptionNotice");
+  const title=document.getElementById("businessSubscriptionTitle");
+  const text=document.getElementById("businessSubscriptionText");
+  const pill=document.getElementById("businessSubscriptionPill");
+  if(!notice||!title||!text||!pill)return;
+  notice.classList.remove("hidden","trial","active","expired");
+  const state=getBusinessAccessState();
+  if(state.effectiveStatus==="trial") {
+    notice.classList.add("trial");
+    const end=businessSubscription?.trial_ends_at?new Date(businessSubscription.trial_ends_at).toLocaleDateString("de-DE"):"–";
+    title.textContent="Kostenlose Testphase aktiv";
+    text.textContent=`Noch ${state.daysRemaining} ${state.daysRemaining===1?"Tag":"Tage"} · endet am ${end} · danach 29,99 € / Monat`;
+    pill.textContent="TESTPHASE";
+  } else if(state.effectiveStatus==="active") {
+    notice.classList.add("active");
+    title.textContent="ÜbergabeCheck Business aktiv";
+    const end=businessSubscription?.current_period_end?new Date(businessSubscription.current_period_end).toLocaleDateString("de-DE"):"";
+    text.textContent=end?`Aktiver Tarif · aktueller Zeitraum bis ${end}`:"Aktiver Tarif · 29,99 € / Monat";
+    pill.textContent="AKTIV";
+  } else if(state.effectiveStatus==="loading") {
+    title.textContent="Tarif wird geladen …";
+    text.textContent="Bitte einen Moment.";
+    pill.textContent="…";
+  } else {
+    notice.classList.add("expired");
+    title.textContent="Testphase abgelaufen";
+    text.textContent="Deine gespeicherten Daten bleiben verfügbar. Für neue oder geänderte Daten ist eine Freischaltung erforderlich.";
+    pill.textContent="ABGELAUFEN";
+  }
+  applyBusinessAccessToUI();
+}
+
+async function loadBusinessSubscription(companyId){
+  if(!companyId||!supabaseClient)return null;
+  const {data,error}=await supabaseClient
+    .from("company_subscriptions")
+    .select("company_id,plan_code,status,trial_started_at,trial_ends_at,current_period_end,cancel_at_period_end")
+    .eq("company_id",companyId)
+    .single();
+  if(error)throw error;
+  businessSubscription=data||null;
+  window.businessSubscription=businessSubscription;
+  refreshBusinessSubscriptionUI();
+  return businessSubscription;
+}
+
 async function loadBusinessData(user){
   if(!user||!supabaseClient) return;
-  if(businessDataLoadedForUser===user.id){renderBusinessObjects();updateBusinessStats();return;}
+  if(businessDataLoadedForUser===user.id){if(businessCompanyId)await loadBusinessSubscription(businessCompanyId);renderBusinessObjects();updateBusinessStats();return;}
   if(businessDataLoading) return;
   businessDataLoading=true;
   try{
     const companyId=await ensureBusinessCompany(user);
     await loadBusinessCompanyProfile(companyId);
+    await loadBusinessSubscription(companyId);
     const {data:objects,error:objectError}=await supabaseClient.from("objects").select("id,company_id,name,street,zip,city,note,created_at").eq("company_id",companyId).order("created_at",{ascending:true});
     if(objectError) throw objectError;
     businessObjects=objects||[];
@@ -2247,6 +2349,7 @@ async function openApartment(id){
 }
 
 function editSelectedApartment(){
+  if(!requireBusinessWriteAccess())return;
   if(selectedApartmentId===null || selectedApartmentId===undefined){
     alert("Die ausgewählte Wohnung konnte nicht gefunden werden.");
     return;
@@ -2293,6 +2396,7 @@ function closeApartment(){
 }
 
 async function startApartmentTransfer(){
+  if(!requireBusinessWriteAccess())return;
   const apartment=getSelectedApartment();
   if(!apartment){
     alert("Die ausgewählte Wohnung konnte nicht gefunden werden.");
@@ -2389,6 +2493,7 @@ function closeObject(){
 }
 
 function quickAddApartment(){
+  if(!requireBusinessWriteAccess())return;
   if(!businessObjects || businessObjects.length===0){
     alert("Bitte zuerst ein Objekt anlegen.");
     return;
@@ -2425,6 +2530,7 @@ async function resetApartmentForm(){
 }
 
 function editApartment(id){
+  if(!requireBusinessWriteAccess())return;
   const apartment=getApartmentById(id);
   if(!apartment) return;
 
@@ -2485,6 +2591,7 @@ function editApartment(id){
 }
 
 function showApartmentForm(){
+  if(!requireBusinessWriteAccess())return;
   const currentObjectId=selectedBusinessObjectId;
 
   const select=document.getElementById("apartmentObject");
@@ -2515,6 +2622,7 @@ function hideApartmentForm(){
 }
 
 async function saveApartment(){
+  if(!requireBusinessWriteAccess())return;
   const selectedObjectId=document.getElementById("apartmentObject")?.value || "";
 
   if(!selectedObjectId){
@@ -2620,6 +2728,7 @@ async function saveApartment(){
 }
 
 async function deleteApartment(id){
+  if(!requireBusinessWriteAccess())return;
   if(selectedBusinessObjectId===null)return;
   const list=businessApartments[selectedBusinessObjectId]||[];
   const apartment=list.find(item=>String(item.id)===String(id));
@@ -2700,6 +2809,7 @@ function resetObjectForm(){
 }
 
 function showObjectForm(){
+  if(!requireBusinessWriteAccess())return;
   resetObjectForm();
   const section=document.getElementById("objectFormSection");
   if(!section) return;
@@ -2709,6 +2819,7 @@ function showObjectForm(){
 }
 
 function editObject(id){
+  if(!requireBusinessWriteAccess())return;
   const object=businessObjects.find(item=>String(item.id)===String(id));
   if(!object) return;
 
@@ -2743,6 +2854,7 @@ function hideObjectForm(){
 }
 
 async function saveObject(){
+  if(!requireBusinessWriteAccess())return;
   const name=document.getElementById("objectName")?.value.trim();
   if(!name){
     alert("Bitte eine Bezeichnung für das Objekt eingeben.");
@@ -2803,6 +2915,7 @@ async function saveObject(){
 }
 
 async function deleteObject(id){
+  if(!requireBusinessWriteAccess())return;
   const object=businessObjects.find(item=>String(item.id)===String(id));
   if(!object)return;
   if(!confirm('Objekt "'+object.name+'" wirklich löschen?'))return;
@@ -3086,6 +3199,7 @@ function closeDefectEditor(){
 }
 
 async function saveDefectChanges(){
+  if(!requireBusinessWriteAccess())return;
   const {transferId,roomName}=editingDefect;
   if(!transferId || !roomName) return;
 
@@ -3480,6 +3594,7 @@ async function renderDashboardCurrentTransfers(){
 }
 
 function startBusinessTransfer(){
+  if(!requireBusinessWriteAccess())return;
   const modal=document.getElementById("transferStartModal");
   const objectSelect=document.getElementById("transferObjectSelect");
   const apartmentSelect=document.getElementById("transferApartmentSelect");
@@ -3513,6 +3628,7 @@ function closeTransferStart(){
 }
 
 async function confirmTransferStart(){
+  if(!requireBusinessWriteAccess())return;
   const objectId=document.getElementById("transferObjectSelect")?.value;
   const apartmentId=document.getElementById("transferApartmentSelect")?.value;
 
@@ -3545,6 +3661,8 @@ async function businessLogout(){
   supabaseUser = null;
   businessDataLoadedForUser = null;
   businessCompanyId = null;
+  businessSubscription = null;
+  window.businessSubscription = null;
 
   const dashboard=document.getElementById("businessDashboard");
   const app=document.getElementById("appContent");
@@ -3569,6 +3687,7 @@ async function businessLogout(){
 
 function startApp(){
   pushTransferHistoryEntry();
+  applyBusinessAccessToUI();
   const landing=document.getElementById("landing");
   const app=document.getElementById("appContent");
   const header=document.getElementById("appHeader");
