@@ -1,0 +1,61 @@
+name: Global dashboard navigation
+
+on:
+  push:
+    branches:
+      - feature/global-dashboard-nav
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/global-dashboard-nav
+
+      - name: Add persistent dashboard navigation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+
+          css='''\n  /* Globale Dashboard-Navigation */\n  .global-dashboard-nav{position:fixed;top:14px;left:14px;z-index:9000;background:#111;color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:10px 14px;font-size:13px;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:pointer}\n  .global-dashboard-nav:hover{background:#2a2a2a}\n  @media(max-width:700px){.global-dashboard-nav{top:10px;left:10px;padding:9px 12px;font-size:12px}}\n  @media print{.global-dashboard-nav{display:none!important}}\n'''
+          assert '</style>' in s
+          s=s.replace('</style>',css+'</style>',1)
+
+          markup='''\n<button id="globalDashboardNav" class="global-dashboard-nav hidden" type="button" onclick="goToBusinessDashboardFromAnywhere()">← Dashboard</button>\n<script>\n(function(){\n  function dashboardIsVisible(){\n    const dashboard=document.getElementById("businessDashboard");\n    if(!dashboard) return false;\n    return !dashboard.classList.contains("hidden") && getComputedStyle(dashboard).display!=="none";\n  }\n\n  window.updateGlobalDashboardNav=function(){\n    const button=document.getElementById("globalDashboardNav");\n    if(!button) return;\n    const loggedIn=(typeof supabaseUser!=="undefined" && !!supabaseUser);\n    button.classList.toggle("hidden",!loggedIn || dashboardIsVisible());\n  };\n\n  window.goToBusinessDashboardFromAnywhere=function(){\n    if(typeof returnToBusinessDashboard==="function"){\n      returnToBusinessDashboard();\n      requestAnimationFrame(window.updateGlobalDashboardNav);\n    }\n  };\n\n  document.addEventListener("DOMContentLoaded",()=>{\n    window.updateGlobalDashboardNav();\n    const observer=new MutationObserver(()=>window.updateGlobalDashboardNav());\n    observer.observe(document.body,{subtree:true,attributes:true,attributeFilter:["class","style"]});\n  });\n})();\n</script>\n'''
+          assert '</body>' in s
+          s=s.replace('</body>',markup+'</body>',1)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Validate
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('index.html').read_text(encoding='utf-8')
+          assert 'id="globalDashboardNav"' in html
+          assert 'goToBusinessDashboardFromAnywhere' in html
+          assert 'returnToBusinessDashboard()' in html
+          scripts=re.findall(r'<script(?:\s+[^>]*)?>(.*?)</script>',html,re.S)
+          for i,script in enumerate(scripts):
+              Path(f'/tmp/inline-{i}.js').write_text(script,encoding='utf-8')
+          PY
+          for f in /tmp/inline-*.js; do node --check "$f"; done
+
+      - name: Commit and clean up
+        shell: bash
+        run: |
+          rm .github/workflows/global-dashboard-nav.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/global-dashboard-nav.yml
+          git commit -m "Add dashboard access from every Business view"
+          git push origin HEAD:feature/global-dashboard-nav
