@@ -333,6 +333,12 @@
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000;}
 .modal-overlay.hidden{display:none!important;}
 .modal-box{background:#fff;border-radius:18px;padding:24px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.18);}
+
+  /* Globale Dashboard-Navigation */
+  .global-dashboard-nav{position:fixed;top:14px;left:14px;z-index:9000;background:#111;color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:10px 14px;font-size:13px;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:pointer}
+  .global-dashboard-nav:hover{background:#2a2a2a}
+  @media(max-width:700px){.global-dashboard-nav{top:10px;left:10px;padding:9px 12px;font-size:12px}}
+  @media print{.global-dashboard-nav{display:none!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script data-domains="uebergabe-check.de" data-website-id="a4c18987-08e8-480c-a3e7-a19b50232683" defer="" src="https://cloud.umami.is/script.js"></script>
@@ -3634,5 +3640,36 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 <script src="pdf-export.js?v=1"></script>
+
+<button id="globalDashboardNav" class="global-dashboard-nav hidden" type="button" onclick="goToBusinessDashboardFromAnywhere()">← Dashboard</button>
+<script>
+(function(){
+  function dashboardIsVisible(){
+    const dashboard=document.getElementById("businessDashboard");
+    if(!dashboard) return false;
+    return !dashboard.classList.contains("hidden") && getComputedStyle(dashboard).display!=="none";
+  }
+
+  window.updateGlobalDashboardNav=function(){
+    const button=document.getElementById("globalDashboardNav");
+    if(!button) return;
+    const loggedIn=(typeof supabaseUser!=="undefined" && !!supabaseUser);
+    button.classList.toggle("hidden",!loggedIn || dashboardIsVisible());
+  };
+
+  window.goToBusinessDashboardFromAnywhere=function(){
+    if(typeof returnToBusinessDashboard==="function"){
+      returnToBusinessDashboard();
+      requestAnimationFrame(window.updateGlobalDashboardNav);
+    }
+  };
+
+  document.addEventListener("DOMContentLoaded",()=>{
+    window.updateGlobalDashboardNav();
+    const observer=new MutationObserver(()=>window.updateGlobalDashboardNav());
+    observer.observe(document.body,{subtree:true,attributes:true,attributeFilter:["class","style"]});
+  });
+})();
+</script>
 </body>
 </html>
