@@ -1,0 +1,113 @@
+name: Direct mail client clean
+
+on:
+  push:
+    branches:
+      - feature/direct-mail-client-clean
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/direct-mail-client-clean
+
+      - name: Remove mail modal and open local mail app directly
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+
+          old='<button class="secondary" onclick="openTransferEmail()" type="button">✉ Im E-Mail-Programm öffnen</button>'
+          new='<button class="secondary" onclick="openTransferEmail()" type="button">✉ Per E-Mail senden</button>'
+          assert old in s, 'summary mail button not found'
+          s=s.replace(old,new,1)
+
+          modal_start=s.find('<div class="impressum-overlay hidden" id="transferEmailOverlay"')
+          next_modal=s.find('<div class="impressum-overlay hidden" id="impressumOverlay"', modal_start)
+          assert modal_start!=-1 and next_modal!=-1, 'email modal boundaries not found'
+          s=s[:modal_start]+s[next_modal:]
+
+          fn_start=s.find('async function openTransferEmail(){')
+          fn_end=s.find('function showSummary(){', fn_start)
+          assert fn_start!=-1 and fn_end!=-1, 'email function block not found'
+          replacement='''async function openTransferEmail(){
+  const address=document.getElementById("address")?.value.trim() || "";
+  const subject=address ? `ÜbergabeCheck – Übergabeprotokoll – ${address}` : "ÜbergabeCheck – Übergabeprotokoll";
+
+  try{
+    if(typeof window.createProtocolPdfBlob!=="function") throw new Error("PDF_EXPORT_NOT_READY");
+    const saved=await persistCurrentTransfer();
+    if(!saved) return;
+
+    const pdf=await window.createProtocolPdfBlob();
+    const url=URL.createObjectURL(pdf.blob);
+    const download=document.createElement("a");
+    download.href=url;
+    download.download=pdf.filename || "Uebergabeprotokoll.pdf";
+    document.body.appendChild(download);
+    download.click();
+    download.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+
+    const message=[
+      "Guten Tag,",
+      "",
+      "anbei erhalten Sie das Übergabeprotokoll zur Wohnungsübergabe.",
+      address ? "Objekt/Wohnung: "+address : "",
+      "",
+      "Viele Grüße"
+    ].filter(Boolean).join("\\n");
+
+    const mailto=`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    window.location.href=mailto;
+  }catch(err){
+    console.error("E-Mail-Programm öffnen:",err);
+    const text=err?.message==="PDF_EXPORT_NOT_READY"
+      ? "Das PDF konnte noch nicht erstellt werden. Bitte Seite neu laden und erneut versuchen."
+      : "Das E-Mail-Programm konnte nicht geöffnet werden.";
+    alert(text);
+  }
+}
+
+'''
+          s=s[:fn_start]+replacement+s[fn_end:]
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Validate
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('index.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s+[^>]*)?>(.*?)</script>',html,re.S)
+          for i,script in enumerate(scripts):
+              Path(f'/tmp/inline-{i}.js').write_text(script,encoding='utf-8')
+          print(f'Found {len(scripts)} inline scripts')
+          PY
+          for f in /tmp/inline-*.js; do node --check "$f"; done
+          grep -q '✉ Per E-Mail senden' index.html
+          grep -q 'mailto:?subject=' index.html
+          grep -q 'storedSignatureDetails' index.html
+          grep -q 'storedSignatures' index.html
+          if grep -q 'transferEmailOverlay' index.html; then exit 1; fi
+          if grep -q 'openTransferMailClient' index.html; then exit 1; fi
+          if grep -q 'sendTransferEmail' index.html; then exit 1; fi
+
+      - name: Commit and remove workflow
+        shell: bash
+        run: |
+          rm .github/workflows/direct-mail-client-clean.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/direct-mail-client-clean.yml
+          git commit -m "Open local mail client directly"
+          git push origin HEAD:feature/direct-mail-client-clean
