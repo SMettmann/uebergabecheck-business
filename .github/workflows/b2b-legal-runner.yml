@@ -1,0 +1,43 @@
+name: B2B legal patch runner
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch Business legal UI
+        run: python scripts/patch_b2b_legal.py
+      - name: Validate
+        run: |
+          grep -q 'AGB – ÜbergabeCheck Business' index.html
+          grep -q 'Auftragsverarbeitungsvertrag (AVV)' index.html
+          grep -q 'BUSINESS_TERMS_VERSION="2026-08-26"' index.html
+          grep -q 'accept-business-legal' index.html
+          grep -q 'Unternehmer im Sinne des § 14 BGB' index.html
+          grep -q 'keine automatische Umwandlung' index.html
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          assert s.count('id="agbOverlay"')==1
+          assert s.count('id="avvOverlay"')==1
+          assert s.count('id="datenschutzOverlay"')==1
+          assert s.count('id="businessLegalGate"')==1
+          start=s.rfind('<script>')
+          end=s.rfind('</script>')
+          if start < 0 or end < start: raise SystemExit('script block not found')
+          Path('/tmp/app.js').write_text(s[start+8:end])
+          PY
+          node --check /tmp/app.js
+      - name: Commit result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -f .github/workflows/b2b-legal.yml .github/workflows/b2b-legal-runner.yml scripts/patch_b2b_legal.py .github/b2b-trigger.txt
+          git add index.html
+          git commit -m 'Add B2B legal acceptance and contracts'
+          git push origin main
