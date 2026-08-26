@@ -246,6 +246,48 @@
     const dateRaw=document.getElementById("date")?.value||"";
     const tenant=value("tenant");
     const landlord=value("landlord");
+    const company=window.businessCompanyProfile||{};
+
+    const companyContact=[
+      company.street||"",
+      [company.zip,company.city].filter(Boolean).join(" "),
+      company.phone?"Tel. "+company.phone:"",
+      company.email||"",
+      company.website||""
+    ].filter(Boolean);
+
+    if(company.name || company.logo_data || companyContact.length){
+      const headerTop=y;
+      const logo=company.logo_data?await dataUrlToJpeg(company.logo_data,700,.9):null;
+      let companyTextX=M;
+      if(logo){
+        const boxW=32, boxH=17;
+        const ratio=logo.width/logo.height;
+        let imageW=boxW, imageH=boxH;
+        if(ratio>boxW/boxH) imageH=imageW/ratio;
+        else imageW=imageH*ratio;
+        try{doc.addImage(logo.data,"JPEG",M,headerTop,imageW,imageH,undefined,"FAST");}catch(_error){}
+        companyTextX=M+37;
+      }
+      if(company.name){
+        const nameLines=split(company.name,88-(companyTextX-M),11.5,"bold").slice(0,2);
+        setText(11.5,"bold");
+        doc.text(nameLines,companyTextX,headerTop+4,{lineHeightFactor:1.05});
+        if(company.contact_name){
+          setText(8,"normal",MUTED);
+          doc.text(split(company.contact_name,80,8,"normal").slice(0,1),companyTextX,headerTop+13);
+        }
+      }
+      if(companyContact.length){
+        setText(8,"normal",MUTED);
+        doc.text(companyContact,M+CONTENT_W,headerTop+3,{align:"right",lineHeightFactor:1.35});
+      }
+      y=headerTop+24;
+      doc.setDrawColor(...LINE);
+      doc.setLineWidth(.25);
+      doc.line(M,y,M+CONTENT_W,y);
+      y+=7;
+    }
 
     setText(7.5,"bold",MUTED);
     doc.text("WOHNUNGSÜBERGABE · BUSINESS",M,y+2.5);
