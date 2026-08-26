@@ -1,0 +1,49 @@
+name: Company letterhead
+
+on:
+  push:
+    branches:
+      - feature/company-letterhead
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/company-letterhead
+
+      - name: Apply company letterhead patch
+        run: python scripts/company_letterhead_patch.py
+
+      - name: Validate JavaScript and expected behavior
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('index.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s+[^>]*)?>(.*?)</script>',html,re.S)
+          for i,script in enumerate(scripts):
+              Path(f'/tmp/index-inline-{i}.js').write_text(script,encoding='utf-8')
+          PY
+          for f in /tmp/index-inline-*.js; do node --check "$f"; done
+          node --check pdf-export.js
+          grep -q 'Unternehmensdaten' index.html
+          grep -q 'companyLetterheadHtml' index.html
+          grep -q 'loadBusinessCompanyProfile' index.html
+          grep -q 'company.logo_data' pdf-export.js
+          grep -q 'landlordInput.value=businessCompanyProfile.name' index.html
+
+      - name: Commit patch and remove temporary files
+        shell: bash
+        run: |
+          rm scripts/company_letterhead_patch.py .github/workflows/company-letterhead.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html pdf-export.js scripts/company_letterhead_patch.py .github/workflows/company-letterhead.yml
+          git commit -m "Add company profile and protocol letterhead"
+          git push origin HEAD:feature/company-letterhead
