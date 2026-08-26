@@ -809,7 +809,7 @@
 <div class="actions no-print" style="justify-content:flex-end;flex-wrap:wrap;">
 <button class="secondary" onclick="go(4)" type="button">Zurück</button>
 <button class="secondary" onclick="saveTransferOnly()" type="button">Übergabe speichern</button>
-<button class="secondary" onclick="openTransferEmail()" type="button">✉ Per E-Mail senden</button>
+<button class="secondary" onclick="openTransferEmail()" type="button">📧 Per E-Mail senden</button>
 <button class="secondary" onclick="saveTransferPdf()" type="button">PDF speichern</button>
 <button class="primary" onclick="printTransfer()" type="button">Drucken</button>
 </div>
@@ -1379,41 +1379,51 @@ async function printTransfer(){
 }
 
 async function openTransferEmail(){
-  const address=document.getElementById("address")?.value.trim() || "";
-  const subject=address ? `ÜbergabeCheck – Übergabeprotokoll – ${address}` : "ÜbergabeCheck – Übergabeprotokoll";
+  const protocol=document.querySelector("#summary .protocol");
+  if(!protocol){
+    alert("Bitte zuerst das Übergabeprotokoll erstellen.");
+    return;
+  }
+
+  const address=document.getElementById("address")?.value.trim()||"Wohnungsübergabe";
+  const tenant=document.getElementById("tenant")?.value.trim()||"–";
+  const dateRaw=document.getElementById("date")?.value||"";
+  const dateFormatted=dateRaw?new Date(dateRaw+"T12:00:00").toLocaleDateString("de-DE"):"–";
+  const subject=`Übergabeprotokoll – ${address}`;
+  const text=`Hallo,\r\n\r\nanbei das Übergabeprotokoll zur Wohnung ${address}.\r\n\r\nDatum: ${dateFormatted}\r\nMieter: ${tenant}\r\n\r\nDokumentiert mit ÜbergabeCheck – einfach, vollständig und nachvollziehbar.\r\nwww.uebergabe-check.de\r\n\r\nViele Grüße`;
 
   try{
-    if(typeof window.createProtocolPdfBlob!=="function") throw new Error("PDF_EXPORT_NOT_READY");
+    if(typeof window.createProtocolPdfBlob!=="function") throw new Error("PDF_UNAVAILABLE");
     const saved=await persistCurrentTransfer();
     if(!saved) return;
 
-    const pdf=await window.createProtocolPdfBlob();
-    const url=URL.createObjectURL(pdf.blob);
-    const download=document.createElement("a");
-    download.href=url;
-    download.download=pdf.filename || "Uebergabeprotokoll.pdf";
-    document.body.appendChild(download);
-    download.click();
-    download.remove();
+    const {blob,filename}=await window.createProtocolPdfBlob();
+    const file=new File([blob],filename,{type:"application/pdf"});
+
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({
+        title:subject,
+        text,
+        files:[file]
+      });
+      return;
+    }
+
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement("a");
+    link.href=url;
+    link.download=filename||"Uebergabeprotokoll.pdf";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
     setTimeout(()=>URL.revokeObjectURL(url),2000);
 
-    const message=[
-      "Guten Tag,",
-      "",
-      "anbei erhalten Sie das Übergabeprotokoll zur Wohnungsübergabe.",
-      address ? "Objekt/Wohnung: "+address : "",
-      "",
-      "Viele Grüße"
-    ].filter(Boolean).join("\n");
-
-    const mailto=`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
-    window.location.href=mailto;
+    window.location.href=`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
   }catch(err){
-    console.error("E-Mail-Programm öffnen:",err);
-    const text=err?.message==="PDF_EXPORT_NOT_READY"
-      ? "Das PDF konnte noch nicht erstellt werden. Bitte Seite neu laden und erneut versuchen."
-      : "Das E-Mail-Programm konnte nicht geöffnet werden.";
-    alert(text);
+    if(err&&err.name==="AbortError") return;
+    console.error("E-Mail/PDF-Share fehlgeschlagen:",err);
+    if(err?.message==="PDF_UNAVAILABLE") alert("Die PDF-Funktion ist noch nicht verfügbar. Bitte die Seite neu laden.");
+    else alert("Die PDF konnte nicht für die E-Mail vorbereitet werden. Bitte versuche es noch einmal.");
   }
 }
 
