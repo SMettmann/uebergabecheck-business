@@ -1,0 +1,63 @@
+name: Stripe checkout UI
+on:
+  push:
+    branches: [feature/stripe-checkout-ui]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/stripe-checkout-ui
+      - name: Add Stripe checkout and portal UI
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          def rep(old,new,count=1):
+              global s
+              if old not in s:
+                  raise SystemExit('Anchor not found: '+old[:160])
+              s=s.replace(old,new,count)
+
+          rep('  .subscription-status-pill{font-size:11px;font-weight:850;padding:7px 10px;border-radius:999px;background:#ececef;white-space:nowrap}\n',
+              '  .subscription-status-pill{font-size:11px;font-weight:850;padding:7px 10px;border-radius:999px;background:#ececef;white-space:nowrap}\n  .subscription-notice-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}\n  .subscription-action{padding:9px 12px;font-size:12px}\n')
+          rep('@media(max-width:650px){.subscription-notice{align-items:flex-start;flex-direction:column;gap:9px}.subscription-status-pill{align-self:flex-start}}',
+              '@media(max-width:650px){.subscription-notice{align-items:flex-start;flex-direction:column;gap:9px}.subscription-notice-actions{width:100%;justify-content:space-between}.subscription-status-pill{align-self:flex-start}}')
+
+          rep('<div class="subscription-status-pill" id="businessSubscriptionPill">…</div>\n</div>\n<div class="dashboard-nav" id="businessMainNav">',
+              '<div class="subscription-notice-actions"><div class="subscription-status-pill" id="businessSubscriptionPill">…</div><button class="primary subscription-action hidden" id="businessSubscriptionAction" type="button">Jetzt freischalten</button></div>\n</div>\n<div class="dashboard-nav" id="businessMainNav">')
+
+          old='''function refreshBusinessSubscriptionUI(){\n  const notice=document.getElementById("businessSubscriptionNotice");\n  const title=document.getElementById("businessSubscriptionTitle");\n  const text=document.getElementById("businessSubscriptionText");\n  const pill=document.getElementById("businessSubscriptionPill");\n  if(!notice||!title||!text||!pill)return;\n  notice.classList.remove("hidden","trial","active","expired");\n  const state=getBusinessAccessState();\n  if(state.effectiveStatus==="trial") {\n    notice.classList.add("trial");\n    const end=businessSubscription?.trial_ends_at?new Date(businessSubscription.trial_ends_at).toLocaleDateString("de-DE"):"–";\n    title.textContent="Kostenlose Testphase aktiv";\n    text.textContent=`Noch ${state.daysRemaining} ${state.daysRemaining===1?"Tag":"Tage"} · endet am ${end} · danach 29,99 € / Monat`;\n    pill.textContent="TESTPHASE";\n  } else if(state.effectiveStatus==="active") {\n    notice.classList.add("active");\n    title.textContent="ÜbergabeCheck Business aktiv";\n    const end=businessSubscription?.current_period_end?new Date(businessSubscription.current_period_end).toLocaleDateString("de-DE"):"";\n    text.textContent=end?`Aktiver Tarif · aktueller Zeitraum bis ${end}`:"Aktiver Tarif · 29,99 € / Monat";\n    pill.textContent="AKTIV";\n  } else if(state.effectiveStatus==="loading") {\n    title.textContent="Tarif wird geladen …";\n    text.textContent="Bitte einen Moment.";\n    pill.textContent="…";\n  } else {\n    notice.classList.add("expired");\n    title.textContent="Testphase abgelaufen";\n    text.textContent="Deine gespeicherten Daten bleiben verfügbar. Für neue oder geänderte Daten ist eine Freischaltung erforderlich.";\n    pill.textContent="ABGELAUFEN";\n  }\n  applyBusinessAccessToUI();\n}\n'''
+          new='''function refreshBusinessSubscriptionUI(){\n  const notice=document.getElementById("businessSubscriptionNotice");\n  const title=document.getElementById("businessSubscriptionTitle");\n  const text=document.getElementById("businessSubscriptionText");\n  const pill=document.getElementById("businessSubscriptionPill");\n  const action=document.getElementById("businessSubscriptionAction");\n  if(!notice||!title||!text||!pill||!action)return;\n  notice.classList.remove("hidden","trial","active","expired");\n  action.classList.add("hidden");\n  action.disabled=false;\n  const state=getBusinessAccessState();\n  if(state.effectiveStatus==="trial") {\n    notice.classList.add("trial");\n    const end=businessSubscription?.trial_ends_at?new Date(businessSubscription.trial_ends_at).toLocaleDateString("de-DE"):"–";\n    title.textContent="Kostenlose Testphase aktiv";\n    text.textContent=`Noch ${state.daysRemaining} ${state.daysRemaining===1?"Tag":"Tage"} · endet am ${end} · danach 29,99 € / Monat`;\n    pill.textContent="TESTPHASE";\n    action.textContent="Jetzt freischalten";\n    action.onclick=startStripeCheckout;\n    action.classList.remove("hidden");\n  } else if(state.effectiveStatus==="active") {\n    notice.classList.add("active");\n    title.textContent="ÜbergabeCheck Business aktiv";\n    const end=businessSubscription?.current_period_end?new Date(businessSubscription.current_period_end).toLocaleDateString("de-DE"):"";\n    text.textContent=end?`Aktiver Tarif · aktueller Zeitraum bis ${end}`:"Aktiver Tarif · 29,99 € / Monat";\n    pill.textContent="AKTIV";\n    action.textContent="Abo verwalten";\n    action.onclick=openStripeCustomerPortal;\n    action.classList.remove("hidden");\n  } else if(state.effectiveStatus==="loading") {\n    title.textContent="Tarif wird geladen …";\n    text.textContent="Bitte einen Moment.";\n    pill.textContent="…";\n  } else if(businessSubscription?.status==="past_due") {\n    notice.classList.add("expired");\n    title.textContent="Zahlung offen";\n    text.textContent="Dein Zugang ist vorübergehend eingeschränkt. Bitte prüfe deine Zahlungsmethode im Stripe-Kundenportal.";\n    pill.textContent="ZAHLUNG OFFEN";\n    action.textContent="Zahlung klären";\n    action.onclick=openStripeCustomerPortal;\n    action.classList.remove("hidden");\n  } else {\n    notice.classList.add("expired");\n    title.textContent="Testphase abgelaufen";\n    text.textContent="Deine gespeicherten Daten bleiben verfügbar. Für neue oder geänderte Daten ist eine Freischaltung erforderlich.";\n    pill.textContent="ABGELAUFEN";\n    action.textContent="Für 29,99 € / Monat freischalten";\n    action.onclick=startStripeCheckout;\n    action.classList.remove("hidden");\n  }\n  applyBusinessAccessToUI();\n}\n\nasync function startStripeCheckout(){\n  if(!supabaseClient||!supabaseUser){alert("Bitte melde dich erneut an.");return;}\n  const action=document.getElementById("businessSubscriptionAction");\n  const old=action?.textContent||"";\n  if(action){action.disabled=true;action.textContent="Checkout wird geöffnet …";}\n  try{\n    const {data,error}=await supabaseClient.functions.invoke("create-checkout-session",{body:{}});\n    if(error)throw error;\n    if(!data?.url)throw new Error(data?.error||"Keine Checkout-URL erhalten");\n    location.href=data.url;\n  }catch(error){\n    console.error("Stripe Checkout:",error);\n    alert("Der Bezahlvorgang konnte nicht gestartet werden. Bitte versuche es erneut.");\n    if(action){action.disabled=false;action.textContent=old||"Jetzt freischalten";}\n  }\n}\n\nasync function openStripeCustomerPortal(){\n  if(!supabaseClient||!supabaseUser){alert("Bitte melde dich erneut an.");return;}\n  const action=document.getElementById("businessSubscriptionAction");\n  const old=action?.textContent||"";\n  if(action){action.disabled=true;action.textContent="Portal wird geöffnet …";}\n  try{\n    const {data,error}=await supabaseClient.functions.invoke("create-customer-portal",{body:{}});\n    if(error)throw error;\n    if(!data?.url)throw new Error(data?.error||"Keine Portal-URL erhalten");\n    location.href=data.url;\n  }catch(error){\n    console.error("Stripe Kundenportal:",error);\n    alert("Das Abo-Portal konnte nicht geöffnet werden. Bitte versuche es erneut.");\n    if(action){action.disabled=false;action.textContent=old||"Abo verwalten";}\n  }\n}\n\nfunction handleStripeCheckoutReturn(){\n  const params=new URLSearchParams(location.search);\n  const result=params.get("checkout");\n  if(!result)return;\n  params.delete("checkout");\n  params.delete("session_id");\n  const clean=location.pathname+(params.toString()?"?"+params.toString():"")+location.hash;\n  history.replaceState(history.state,"",clean);\n  if(result==="success"){\n    alert("Zahlung wurde übermittelt. Bei Kartenzahlung wird dein Zugang normalerweise sofort aktiviert; bei SEPA kann die Bestätigung etwas dauern.");\n    if(businessCompanyId)setTimeout(()=>loadBusinessSubscription(businessCompanyId).catch(console.error),1200);\n  }\n}\n'''
+          rep(old,new)
+          rep('    await loadBusinessSubscription(companyId);\n    const {data:objects,error:objectError}=', '    await loadBusinessSubscription(companyId);\n    handleStripeCheckoutReturn();\n    const {data:objects,error:objectError}=')
+
+          p.write_text(s)
+          PY
+      - name: Validate
+        run: |
+          grep -q 'create-checkout-session' index.html
+          grep -q 'create-customer-portal' index.html
+          grep -q 'Für 29,99 € / Monat freischalten' index.html
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          start=s.rfind('<script>')
+          end=s.rfind('</script>')
+          if start < 0 or end < start: raise SystemExit('script block not found')
+          Path('/tmp/app.js').write_text(s[start+8:end])
+          PY
+          node --check /tmp/app.js
+      - name: Commit result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/stripe-checkout-ui.yml
+          git add index.html
+          git commit -m 'Connect Business subscription UI to Stripe'
+          git push origin feature/stripe-checkout-ui
