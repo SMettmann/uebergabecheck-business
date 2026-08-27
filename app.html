@@ -1681,6 +1681,7 @@ function showSummary(){
           <div><span>Mieter</span><strong>${esc(document.getElementById("tenant").value)||"–"}</strong></div>
           <div><span>Vermieter</span><strong>${esc(document.getElementById("landlord").value)||"–"}</strong></div>
         </div>
+        ${window.currentBusinessTransferCreatedByName?`<div class="muted" style="margin-top:10px;">Erstellt von: ${esc(window.currentBusinessTransferCreatedByName)}</div>`:""}
       </div>
 
       <div class="protocol-section">
@@ -2338,11 +2339,11 @@ async function loadBusinessData(user){
       (apartments||[]).forEach(a=>{if(!businessApartments[a.object_id]) businessApartments[a.object_id]=[];businessApartments[a.object_id].push(a);});
       const apartmentIds=(apartments||[]).map(a=>a.id);
       if(apartmentIds.length){
-        const {data:transfers,error:transferError}=await supabaseClient.from("transfers").select("id,apartment_id,type,status,created_at,tenant_name,tenant_surname,open_defect_count").in("apartment_id",apartmentIds).order("created_at",{ascending:true});
+        const {data:transfers,error:transferError}=await supabaseClient.from("transfers").select("id,apartment_id,type,status,created_at,tenant_name,tenant_surname,open_defect_count,created_by_name").in("apartment_id",apartmentIds).order("created_at",{ascending:true});
         if(transferError) throw transferError;
         (transfers||[]).forEach(t=>{
           if(!apartmentTransfers[t.apartment_id]) apartmentTransfers[t.apartment_id]=[];
-          apartmentTransfers[t.apartment_id].push({id:t.id,type:t.type,created:t.created_at?new Date(t.created_at).toLocaleDateString("de-DE"):"",status:t.status,tenantName:t.tenant_name||"",tenantSurname:t.tenant_surname||"",openDefectCount:Number(t.open_defect_count||0)});
+          apartmentTransfers[t.apartment_id].push({id:t.id,type:t.type,created:t.created_at?new Date(t.created_at).toLocaleDateString("de-DE"):"",status:t.status,tenantName:t.tenant_name||"",tenantSurname:t.tenant_surname||"",createdByName:t.created_by_name||"",openDefectCount:Number(t.open_defect_count||0)});
         });
       }
     }
@@ -2653,6 +2654,7 @@ function goBusinessHome(){
   selectedBusinessObjectId=null;
   window.currentBusinessApartmentId=null;
   window.currentBusinessTransferId=null;
+  window.currentBusinessTransferCreatedByName="";
 
   document.getElementById("apartmentDetailSection")?.classList.add("hidden");
   document.getElementById("objectDetailSection")?.classList.add("hidden");
@@ -2701,13 +2703,15 @@ async function startApartmentTransfer(){
 
   window.currentBusinessApartmentId=apartment.id;
   window.currentBusinessTransferId=transfer.id;
+  window.currentBusinessTransferCreatedByName=transfer.created_by_name||"";
 
   if(!apartmentTransfers[apartment.id]) apartmentTransfers[apartment.id]=[];
   apartmentTransfers[apartment.id].push({
     id:transfer.id,
     type:transfer.type,
     created:new Date(transfer.created_at).toLocaleDateString("de-DE"),
-    status:transfer.status
+    status:transfer.status,
+    createdByName:transfer.created_by_name||""
   });
 
   updateBusinessStats();
@@ -2719,9 +2723,9 @@ async function renderApartmentTransfers(){
   if(!list || selectedApartmentId===null) return;
   if(!supabaseClient || !supabaseUser){list.innerHTML='<div class="empty-state">Bitte zuerst anmelden.</div>';return;}
   list.innerHTML='<div class="empty-state">Übergaben werden geladen …</div>';
-  const {data:rows,error}=await supabaseClient.from("transfers").select("id,type,status,created_at,apartment_id,tenant_name,tenant_surname,open_defect_count").eq("apartment_id",selectedApartmentId).order("created_at",{ascending:false});
+  const {data:rows,error}=await supabaseClient.from("transfers").select("id,type,status,created_at,apartment_id,tenant_name,tenant_surname,open_defect_count,created_by_name").eq("apartment_id",selectedApartmentId).order("created_at",{ascending:false});
   if(error){console.error("Wohnungsübergaben laden:",error);list.innerHTML='<div class="empty-state">Übergaben konnten nicht geladen werden.</div>';return;}
-  apartmentTransfers[selectedApartmentId]=(rows||[]).map(t=>({id:t.id,type:t.type||"Wohnungsübergabe",created:t.created_at?new Date(t.created_at).toLocaleDateString("de-DE"):"–",status:t.status||"Neu",tenantName:t.tenant_name||"",tenantSurname:t.tenant_surname||"",openDefectCount:Number(t.open_defect_count||0)}));
+  apartmentTransfers[selectedApartmentId]=(rows||[]).map(t=>({id:t.id,type:t.type||"Wohnungsübergabe",created:t.created_at?new Date(t.created_at).toLocaleDateString("de-DE"):"–",status:t.status||"Neu",tenantName:t.tenant_name||"",tenantSurname:t.tenant_surname||"",createdByName:t.created_by_name||"",openDefectCount:Number(t.open_defect_count||0)}));
   if(!rows?.length){list.innerHTML='<div class="empty-state">Noch keine Übergaben für diese Wohnung vorhanden.</div>';return;}
   const objectId=selectedBusinessObjectId;
   list.innerHTML=rows.map(t=>{
@@ -2729,7 +2733,7 @@ async function renderApartmentTransfers(){
     const date=t.created_at?new Date(t.created_at).toLocaleDateString("de-DE"):"–";
     const status=t.status||"Neu";
     const displayTitle=t.tenant_surname?`${t.tenant_surname} – ${type}`:type;
-    return `<div class="transfer-item" style="cursor:pointer;" onclick="openBusinessTransfer('${escAttr(t.id)}','${escAttr(objectId)}','${escAttr(selectedApartmentId)}')"><div><strong>${esc(displayTitle)}</strong><small>Erstellt am ${esc(date)}</small></div><div class="transfer-actions"><span class="status active">${esc(status)}</span><button type="button" class="secondary" onclick="event.stopPropagation();openBusinessTransfer('${escAttr(t.id)}','${escAttr(objectId)}','${escAttr(selectedApartmentId)}')">Öffnen</button><button type="button" class="danger" onclick="event.stopPropagation();deleteBusinessTransfer('${escAttr(t.id)}','${escAttr(selectedApartmentId)}')">Löschen</button></div></div>`;
+    return `<div class="transfer-item" style="cursor:pointer;" onclick="openBusinessTransfer('${escAttr(t.id)}','${escAttr(objectId)}','${escAttr(selectedApartmentId)}')"><div><strong>${esc(displayTitle)}</strong><small>Erstellt am ${esc(date)}${t.created_by_name?" · Erstellt von: "+esc(t.created_by_name):""}</small></div><div class="transfer-actions"><span class="status active">${esc(status)}</span><button type="button" class="secondary" onclick="event.stopPropagation();openBusinessTransfer('${escAttr(t.id)}','${escAttr(objectId)}','${escAttr(selectedApartmentId)}')">Öffnen</button><button type="button" class="danger" onclick="event.stopPropagation();deleteBusinessTransfer('${escAttr(t.id)}','${escAttr(selectedApartmentId)}')">Löschen</button></div></div>`;
   }).join("");
   updateBusinessStats();
 }
@@ -3794,7 +3798,7 @@ async function openBusinessTransfer(transferId, objectId, apartmentId){
 
   const {data:transfer,error}=await supabaseClient
     .from("transfers")
-    .select("id,data,status,apartment_id")
+    .select("id,data,status,apartment_id,created_by_name")
     .eq("id",transferId)
     .single();
 
@@ -3804,6 +3808,7 @@ async function openBusinessTransfer(transferId, objectId, apartmentId){
     return;
   }
 
+  window.currentBusinessTransferCreatedByName=transfer?.created_by_name||"";
   startApp();
 
   if(transfer?.data){
@@ -3821,7 +3826,7 @@ async function renderBusinessTransfers(){
   const container=document.getElementById("businessTransfersList");
   if(!container) return;
   if(!supabaseClient || !supabaseUser){container.innerHTML='<div class="empty-state">Bitte zuerst anmelden.</div>';return;}
-  const {data:rows,error}=await supabaseClient.from("transfers").select("id,type,status,created_at,apartment_id,tenant_name,tenant_surname,open_defect_count,apartments(id,name,number,object_id,objects(id,name))").order("created_at",{ascending:false});
+  const {data:rows,error}=await supabaseClient.from("transfers").select("id,type,status,created_at,apartment_id,tenant_name,tenant_surname,open_defect_count,created_by_name,apartments(id,name,number,object_id,objects(id,name))").order("created_at",{ascending:false});
   if(error){console.error("Übergaben laden:",error);container.innerHTML='<div class="empty-state">Übergaben konnten nicht geladen werden.</div>';return;}
   if(!rows?.length){container.innerHTML='<div class="empty-state">Noch keine Übergaben vorhanden.</div>';return;}
   container.innerHTML=rows.map(t=>{
@@ -3829,7 +3834,7 @@ async function renderBusinessTransfers(){
     const tenantName=t.tenant_name||"";const tenantSurname=t.tenant_surname||"";
     const date=t.created_at?new Date(t.created_at).toLocaleDateString("de-DE"):"–";
     const displayTitle=tenantSurname?`${tenantSurname} – ${t.type||"Wohnungsübergabe"}`:(t.type||"Wohnungsübergabe");
-    return `<div class="transfer-item"><div><strong>${esc(displayTitle)}</strong><small>${esc(o?.name||"Objekt")} · ${esc(a?.name||"Wohnung")}${tenantName&&tenantName!==tenantSurname?" · "+esc(tenantName):""} · ${esc(date)}</small></div><div class="transfer-actions"><span class="status active">${esc(t.status||"Neu")}</span><button class="secondary" type="button" onclick="openBusinessTransfer('${escAttr(t.id)}','${escAttr(o?.id||"")}','${escAttr(a?.id||t.apartment_id||"")}')">Öffnen</button></div></div>`;
+    return `<div class="transfer-item"><div><strong>${esc(displayTitle)}</strong><small>${esc(o?.name||"Objekt")} · ${esc(a?.name||"Wohnung")}${tenantName&&tenantName!==tenantSurname?" · "+esc(tenantName):""} · ${esc(date)}${t.created_by_name?" · Erstellt von: "+esc(t.created_by_name):""}</small></div><div class="transfer-actions"><span class="status active">${esc(t.status||"Neu")}</span><button class="secondary" type="button" onclick="openBusinessTransfer('${escAttr(t.id)}','${escAttr(o?.id||"")}','${escAttr(a?.id||t.apartment_id||"")}')">Öffnen</button></div></div>`;
   }).join("");
 }
 
@@ -3839,7 +3844,7 @@ async function renderDashboardCurrentTransfers(){
 
   const {data:rows,error}=await supabaseClient
     .from("transfers")
-    .select("id,type,status,created_at,apartment_id,data,apartments(id,name,object_id,objects(id,name))")
+    .select("id,type,status,created_at,apartment_id,data,created_by_name,apartments(id,name,object_id,objects(id,name))")
     .order("created_at",{ascending:false})
     .limit(5);
 
@@ -3863,7 +3868,7 @@ async function renderDashboardCurrentTransfers(){
     return `<div class="transfer-item">
       <div>
         <strong>${esc(displayTitle)}</strong>
-        <small>${esc(o?.name || "Objekt")} · ${esc(a?.name || "Wohnung")}</small>
+        <small>${esc(o?.name || "Objekt")} · ${esc(a?.name || "Wohnung")}${t.created_by_name?" · Erstellt von: "+esc(t.created_by_name):""}</small>
       </div>
       <div class="transfer-actions">
         <span class="status active">${esc(t.status || "Neu")}</span>
@@ -3946,6 +3951,7 @@ async function businessLogout(){
   businessCompanyId = null;
   businessSubscription = null;
   window.businessSubscription = null;
+  window.currentBusinessTransferCreatedByName="";
 
   const dashboard=document.getElementById("businessDashboard");
   const app=document.getElementById("appContent");
@@ -4037,6 +4043,7 @@ loadDraft();
 renderAllMeterPhotos();
 renderProgress(1);
 updateCustomRoomNote();
+// UEBERGABECHECK_TRANSFER_CREATOR_V1
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {

@@ -246,6 +246,7 @@
     const dateRaw=document.getElementById("date")?.value||"";
     const tenant=value("tenant");
     const landlord=value("landlord");
+    const createdBy=String(window.currentBusinessTransferCreatedByName||"").trim();
     const company=window.businessCompanyProfile||{};
 
     const companyContact=[
@@ -308,6 +309,11 @@
     roundedInfoCard(M+metaW+metaGap,y,metaW,"Mieter",tenant);
     roundedInfoCard(M+(metaW+metaGap)*2,y,metaW,"Vermieter",landlord);
     y+=25;
+    if(createdBy){
+      setText(8.5,"normal",MUTED);
+      doc.text(`Erstellt von: ${createdBy}`,M,y);
+      y+=5;
+    }
     doc.setDrawColor(...TEXT);
     doc.setLineWidth(.55);
     doc.line(M,y,M+CONTENT_W,y);
@@ -456,3 +462,5 @@
   window.createProtocolPdfBlob=createProtocolPdfBlob;
   window.saveTransferPdf=saveTransferPdfWithJsPdf;
 })();
+
+// UEBERGABECHECK_TRANSFER_CREATOR_V1
