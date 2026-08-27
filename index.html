@@ -220,6 +220,24 @@
 
 
   .register-link{display:inline-block;margin-top:13px;color:#222;text-decoration:underline;font-weight:750;cursor:pointer}
+  .legal-checks{margin-top:16px;padding:14px;border:1px solid #e2e3e6;border-radius:14px;background:#f8f8f9}
+  .legal-check{display:flex;align-items:flex-start;gap:10px;margin:0 0 12px;font-size:12px;font-weight:500;line-height:1.5;color:#555;cursor:pointer}
+  .legal-check:last-child{margin-bottom:0}
+  .legal-check input{width:auto;flex:0 0 auto;margin:3px 0 0;accent-color:#111}
+  .legal-inline-link{display:inline;padding:0;border:0;border-radius:0;background:none;color:#222;text-decoration:underline;font:inherit;font-weight:750;cursor:pointer}
+  .dashboard-legal-links{font-size:12px;color:#777;text-align:right;margin:-8px 2px 16px}
+  .dashboard-legal-links a{color:#555;text-decoration:underline;cursor:pointer;margin-left:7px}
+  .business-legal-gate{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:18px;z-index:10000}
+  .business-legal-box{background:#fff;width:min(660px,100%);max-height:92vh;overflow:auto;border-radius:22px;padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+  .business-legal-box h2{font-size:25px;margin:0 0 8px}
+  .business-legal-box>p{color:#666;font-size:14px;line-height:1.6;margin:0 0 18px}
+  .business-legal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+  .legal-document-overlay{z-index:10050}
+  .legal-document p,.legal-document li{line-height:1.62;color:#555}
+  .legal-document h3{margin:24px 0 8px;color:#222}
+  .legal-document h4{margin:18px 0 7px;color:#333}
+  .legal-document ul{padding-left:20px}
+  @media(max-width:600px){.business-legal-box{padding:22px 17px}.business-legal-actions{flex-direction:column-reverse}.business-legal-actions button{width:100%}.dashboard-legal-links{text-align:left;margin-top:-7px}}
   .register-form{display:none}
   .register-form.active{display:block}
   .back-login{display:inline-block;margin-top:16px;color:#666;text-decoration:underline;cursor:pointer;font-size:13px}
@@ -377,7 +395,7 @@
 <h1>ÜbergabeCheck Business</h1>
 <div class="login-pricing-summary">
   <strong>14 Tage kostenlos testen</strong>
-  <span>Danach 29,99 € / Monat · jederzeit kündbar</span>
+  <span>Danach bei aktiver Buchung 29,99 € / Monat · jederzeit kündbar · keine automatische Umwandlung</span>
 </div>
 <h2 class="login-customer-title">Bereits Kunde? Einloggen</h2>
 <p class="login-lead">Melde dich an, um deine Objekte, Wohnungen und Übergaben zentral zu verwalten.</p>
@@ -439,6 +457,10 @@
 <input autocomplete="new-password" id="registerPassword" minlength="8" placeholder="Mindestens 8 Zeichen" required="" type="password"/>
 <label for="registerPasswordRepeat">Passwort wiederholen</label>
 <input autocomplete="new-password" id="registerPasswordRepeat" minlength="8" placeholder="Passwort erneut eingeben" required="" type="password"/>
+<div class="legal-checks">
+  <label class="legal-check"><input id="registrationB2B" required type="checkbox"/><span>Ich bestätige, dass ich als <strong>Unternehmer im Sinne des § 14 BGB</strong> handle und ÜbergabeCheck Business ausschließlich für meine gewerbliche oder selbständige berufliche Tätigkeit nutze.</span></label>
+  <label class="legal-check"><input id="registrationLegal" required type="checkbox"/><span>Ich akzeptiere die <button class="legal-inline-link" type="button" onclick="event.preventDefault();event.stopPropagation();openAGB()">AGB</button>, schließe den <button class="legal-inline-link" type="button" onclick="event.preventDefault();event.stopPropagation();openAVV()">Auftragsverarbeitungsvertrag (AVV)</button> ab und habe die <button class="legal-inline-link" type="button" onclick="event.preventDefault();event.stopPropagation();openDatenschutz()">Datenschutzerklärung</button> zur Kenntnis genommen.</span></label>
+</div>
 <button class="primary login-button" type="submit">Unternehmen registrieren →</button>
 </form>
 <div class="login-error hidden" id="registrationError"></div>
@@ -446,9 +468,24 @@
 </div>
 </div>
 <div class="site-footer login-legal">
-  ÜbergabeCheck Business · <a onclick="openImpressum()">Impressum</a> · <a onclick="openDatenschutz()">Datenschutz</a>
+  ÜbergabeCheck Business · <a onclick="openImpressum()">Impressum</a> · <a onclick="openDatenschutz()">Datenschutz</a> · <a onclick="openAGB()">AGB</a> · <a onclick="openAVV()">AVV</a>
 </div>
 </section>
+<div class="business-legal-gate hidden" id="businessLegalGate" role="presentation">
+  <div class="business-legal-box" role="dialog" aria-modal="true" aria-labelledby="businessLegalGateTitle">
+    <div class="business-pill">RECHTLICHES · B2B</div>
+    <h2 id="businessLegalGateTitle">Einmalig bestätigen</h2>
+    <p>ÜbergabeCheck Business richtet sich ausschließlich an Unternehmen. Damit du personenbezogene Daten wie Mieterdaten, Fotos oder Unterschriften verarbeiten kannst, müssen die aktuellen Vertragsbedingungen und der AVV bestätigt sein.</p>
+    <div class="legal-checks">
+      <label class="legal-check"><input id="businessLegalB2B" type="checkbox"/><span>Ich bestätige, dass ich als <strong>Unternehmer im Sinne des § 14 BGB</strong> handle.</span></label>
+      <label class="legal-check"><input id="businessLegalTerms" type="checkbox"/><span>Ich akzeptiere die <button class="legal-inline-link" type="button" onclick="openAGB()">AGB</button>, schließe den <button class="legal-inline-link" type="button" onclick="openAVV()">AVV nach Art. 28 DSGVO</button> ab und habe die <button class="legal-inline-link" type="button" onclick="openDatenschutz()">Datenschutzerklärung</button> zur Kenntnis genommen.</span></label>
+    </div>
+    <div class="business-legal-actions">
+      <button class="secondary" type="button" onclick="businessLogout()">Abmelden</button>
+      <button class="primary" id="businessLegalAcceptButton" type="button" onclick="acceptBusinessLegalFromGate()">Zustimmen & fortfahren</button>
+    </div>
+  </div>
+</div>
 <div class="transfer-start-modal hidden" id="transferStartModal" style="display:none;">
 <div class="transfer-start-box">
 <h2>Neue Übergabe</h2>
@@ -523,6 +560,7 @@
   <div><strong id="businessSubscriptionTitle">Tarif wird geladen …</strong><span id="businessSubscriptionText">Bitte einen Moment.</span></div>
   <div class="subscription-notice-actions"><div class="subscription-status-pill" id="businessSubscriptionPill">…</div><button class="primary subscription-action hidden" id="businessSubscriptionAction" type="button">Jetzt freischalten</button></div>
 </div>
+<div class="dashboard-legal-links">Rechtliches: <a onclick="openAGB()">AGB</a><a onclick="openAVV()">AVV</a><a onclick="openDatenschutz()">Datenschutz</a><a onclick="openImpressum()">Impressum</a></div>
 <div class="dashboard-nav" id="businessMainNav">
 <button class="active" type="button" onclick="navigateBusinessTab('dashboard',this)">⌂ Dashboard</button>
 <button type="button" onclick="navigateBusinessTab('objects',this)">Objekte</button>
@@ -925,100 +963,131 @@
     </p>
 </div>
 </div>
-<div class="impressum-overlay hidden" id="datenschutzOverlay" onclick="if(event.target===this) closeDatenschutz()">
-<div aria-labelledby="datenschutzTitle" aria-modal="true" class="privacy-modal" role="dialog">
-<div class="impressum-head">
-<h2 id="datenschutzTitle">Datenschutzerklärung</h2>
-<button class="impressum-close" onclick="closeDatenschutz()" type="button">Schließen</button>
+<div class="impressum-overlay legal-document-overlay hidden" id="agbOverlay" onclick="if(event.target===this) closeAGB()">
+<div aria-labelledby="agbTitle" aria-modal="true" class="privacy-modal legal-document" role="dialog">
+<div class="impressum-head"><h2 id="agbTitle">AGB – ÜbergabeCheck Business</h2><button class="impressum-close" onclick="closeAGB()" type="button">Schließen</button></div>
+<p><strong>Stand: 26. August 2026 · Version 2026-08-26</strong></p>
+<h3>1. Anbieter und Geltungsbereich</h3>
+<p>Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung von ÜbergabeCheck Business, angeboten von Sven Mettmann / ÜbergabeCheck, Weiherstraße 30, 89522 Heidenheim an der Brenz, E-Mail: info@uebergabe-check.de.</p>
+<p><strong>ÜbergabeCheck Business richtet sich ausschließlich an Unternehmer im Sinne des § 14 BGB.</strong> Ein Vertrag mit Verbrauchern über den Business-Tarif ist nicht vorgesehen. Mit Registrierung und Nutzung bestätigt der Kunde, in Ausübung seiner gewerblichen oder selbständigen beruflichen Tätigkeit zu handeln.</p>
+<h3>2. Leistungsgegenstand</h3>
+<p>ÜbergabeCheck Business ist eine webbasierte Software zur Organisation und Dokumentation von Wohnungsübergaben. Zum Funktionsumfang können insbesondere die Verwaltung von Objekten und Wohnungen, Übergabeprotokolle, Mängeldokumentation, Fotos, Zählerstände, digitale Unterschriften, PDF-Export, Versandfunktionen und ein Unternehmensbriefkopf gehören.</p>
+<p>Die Software unterstützt die Dokumentation. Sie ersetzt keine rechtliche, technische oder sachverständige Prüfung eines Mietobjekts. Der Kunde bleibt für Inhalt, Vollständigkeit und fachliche Bewertung seiner Protokolle verantwortlich.</p>
+<h3>3. Registrierung und kostenlose Testphase</h3>
+<p>Für die Nutzung ist ein Unternehmenskonto erforderlich. Die kostenlose Testphase beträgt 14 Tage ab Anlage des Unternehmenskontos. <strong>Die Testphase wird nicht automatisch in ein kostenpflichtiges Abonnement umgewandelt.</strong> Nach ihrem Ablauf ist für neue oder geänderte Daten eine aktive kostenpflichtige Freischaltung erforderlich; bereits gespeicherte Daten können im Rahmen der angebotenen Funktionen weiterhin lesbar sein.</p>
+<h3>4. Kostenpflichtiges Abonnement und Vertragsschluss</h3>
+<p>Das kostenpflichtige Abonnement wird aktiv vom Kunden über den bereitgestellten Stripe-Checkout gebucht. Der Vertrag über das kostenpflichtige Abonnement kommt zustande, wenn der Buchungsvorgang erfolgreich abgeschlossen und das Abonnement durch ÜbergabeCheck bzw. den Zahlungsdienstleister bestätigt wurde.</p>
+<p>Der Business-Tarif kostet derzeit 29,99 € pro Monat. Maßgeblich ist der im Buchungsprozess ausgewiesene Preis. Soweit aufgrund der Kleinunternehmerregelung nach § 19 UStG keine Umsatzsteuer erhoben wird, wird dies auf der Rechnung entsprechend ausgewiesen.</p>
+<h3>5. Laufzeit und Kündigung</h3>
+<p>Das Abonnement läuft monatlich und verlängert sich jeweils um einen weiteren Abrechnungsmonat, sofern es nicht gekündigt wird. Die Kündigung ist jederzeit zum Ende des laufenden bezahlten Abrechnungszeitraums über das bereitgestellte Kundenportal möglich. Bis zum Ende dieses Zeitraums bleibt der Zugang aktiv.</p>
+<h3>6. Zahlung und Rechnungen</h3>
+<p>Die Zahlungsabwicklung erfolgt über Stripe. Je nach Verfügbarkeit können insbesondere Kartenzahlung und SEPA-Lastschrift angeboten werden. Rechnungen und Zahlungsinformationen werden über Stripe bereitgestellt. Bei fehlgeschlagenen oder überfälligen Zahlungen darf der Schreibzugriff vorübergehend eingeschränkt werden, bis die Zahlung geklärt ist.</p>
+<h3>7. Pflichten des Kunden</h3>
+<ul><li>Der Kunde hält seine Konto- und Unternehmensdaten aktuell und schützt seine Zugangsdaten vor unbefugtem Zugriff.</li><li>Der Kunde stellt sicher, dass er personenbezogene Daten, Fotos, Unterschriften und sonstige Inhalte rechtmäßig in ÜbergabeCheck Business verarbeiten darf.</li><li>Der Kunde ist für die Information betroffener Personen und die Erfüllung eigener datenschutzrechtlicher Pflichten verantwortlich.</li><li>Rechtswidrige Inhalte, Schadsoftware sowie eine missbräuchliche oder sicherheitsgefährdende Nutzung sind untersagt.</li></ul>
+<h3>8. Datenschutz und Auftragsverarbeitung</h3>
+<p>Für Konto-, Vertrags- und Zahlungsdaten handelt ÜbergabeCheck im Rahmen der eigenen gesetzlichen und vertraglichen Pflichten als Verantwortlicher. Soweit ÜbergabeCheck personenbezogene Inhalte verarbeitet, die der Kunde in Übergabeprotokollen und Verwaltungsdaten für eigene Zwecke speichert, erfolgt die Verarbeitung nach Maßgabe des separat einbezogenen Auftragsverarbeitungsvertrags (AVV) gemäß Art. 28 DSGVO.</p>
+<h3>9. Verfügbarkeit, Wartung und Änderungen</h3>
+<p>ÜbergabeCheck bemüht sich um einen zuverlässigen Betrieb. Eine ununterbrochene Verfügbarkeit wird ohne gesonderte Service-Level-Vereinbarung nicht geschuldet. Vorübergehende Einschränkungen können insbesondere durch Wartung, Sicherheitsmaßnahmen, Störungen von Hosting-, Internet- oder Drittanbieterdiensten entstehen. Funktionen dürfen weiterentwickelt oder angepasst werden, soweit der wesentliche Vertragszweck erhalten bleibt.</p>
+<h3>10. Mängel und Support</h3>
+<p>Störungen sollen möglichst konkret an info@uebergabe-check.de gemeldet werden. Der Kunde unterstützt bei der Fehleranalyse durch zumutbare Angaben zum betroffenen Vorgang und verwendeten Gerät bzw. Browser.</p>
+<h3>11. Haftung</h3>
+<p>ÜbergabeCheck haftet unbeschränkt bei Vorsatz und grober Fahrlässigkeit sowie bei Schäden aus der Verletzung von Leben, Körper oder Gesundheit und in Fällen zwingender gesetzlicher Haftung. Bei leicht fahrlässiger Verletzung wesentlicher Vertragspflichten ist die Haftung auf den vertragstypischen, vorhersehbaren Schaden begrenzt. Im Übrigen ist die Haftung für leichte Fahrlässigkeit ausgeschlossen, soweit gesetzlich zulässig.</p>
+<h3>12. Daten nach Vertragsende</h3>
+<p>Nach Ende eines kostenpflichtigen Abonnements können gespeicherte Daten zunächst im lesenden Zugriff verbleiben. Der Kunde ist dafür verantwortlich, benötigte Protokolle und Unterlagen rechtzeitig zu exportieren. ÜbergabeCheck kann dauerhaft inaktive Unternehmenskonten und deren Inhaltsdaten frühestens sechs Monate nach Ende des kostenpflichtigen Abonnements löschen, wenn die im Konto hinterlegte geschäftliche E-Mail-Adresse mindestens 30 Tage vorher informiert wurde. Gesetzliche Aufbewahrungspflichten, insbesondere für Abrechnungsdaten, bleiben unberührt.</p>
+<h3>13. Schlussbestimmungen</h3>
+<p>Es gilt deutsches Recht unter Ausschluss des UN-Kaufrechts. Soweit gesetzlich zulässig und der Kunde Kaufmann, juristische Person des öffentlichen Rechts oder öffentlich-rechtliches Sondervermögen ist, ist Gerichtsstand Heidenheim an der Brenz. Individuelle Vereinbarungen haben Vorrang vor diesen AGB.</p>
 </div>
-<p><strong>Stand: August 2026</strong></p>
+</div>
+
+<div class="impressum-overlay legal-document-overlay hidden" id="avvOverlay" onclick="if(event.target===this) closeAVV()">
+<div aria-labelledby="avvTitle" aria-modal="true" class="privacy-modal legal-document" role="dialog">
+<div class="impressum-head"><h2 id="avvTitle">Auftragsverarbeitungsvertrag (AVV)</h2><button class="impressum-close" onclick="closeAVV()" type="button">Schließen</button></div>
+<p><strong>nach Art. 28 DSGVO · Stand: 26. August 2026 · Version 2026-08-26</strong></p>
+<p>Dieser AVV wird zwischen dem Unternehmen, das ÜbergabeCheck Business nutzt (<strong>Verantwortlicher / Kunde</strong>), und Sven Mettmann / ÜbergabeCheck, Weiherstraße 30, 89522 Heidenheim an der Brenz (<strong>Auftragsverarbeiter</strong>), geschlossen.</p>
+<h3>1. Gegenstand und Dauer</h3>
+<p>Gegenstand ist die Verarbeitung personenbezogener Daten im Rahmen der Bereitstellung von ÜbergabeCheck Business. Der AVV gilt ab seiner elektronischen Annahme für die Dauer der Nutzung des Dienstes und darüber hinaus, solange ÜbergabeCheck noch personenbezogene Inhaltsdaten des Kunden im Auftrag verarbeitet.</p>
+<h3>2. Art und Zweck der Verarbeitung</h3>
+<p>Die Verarbeitung umfasst das Speichern, Strukturieren, Anzeigen, Ändern, Übertragen, Exportieren und Löschen von Daten, die der Kunde zur Verwaltung von Objekten, Wohnungen, Übergaben und Mängeln in die Anwendung eingibt. Die Verarbeitung erfolgt ausschließlich zur Bereitstellung und Absicherung der vereinbarten SaaS-Funktionen und nach dokumentierten Weisungen des Kunden, soweit keine gesetzliche Verpflichtung entgegensteht.</p>
+<h3>3. Kategorien personenbezogener Daten</h3>
+<ul><li>Stamm- und Kontaktdaten von Mietern, Vermietern, Eigentümern, Vertretern oder sonstigen Beteiligten</li><li>Objekt-, Wohnungs- und Vertragsbezug, Übergabeart und Übergabedatum</li><li>Zählerstände, Schlüsselangaben, Mängelbeschreibungen und Notizen</li><li>Fotos und sonstige Bilddaten</li><li>digitale Unterschriften sowie Orts- und Datumsangaben zur Unterschrift</li><li>sonstige vom Kunden freiwillig in Freitextfeldern hinterlegte personenbezogene Angaben</li></ul>
+<h3>4. Kategorien betroffener Personen</h3>
+<p>Insbesondere Mieter, ehemalige oder künftige Mieter, Vermieter, Eigentümer, Bevollmächtigte, Hausverwaltungsmitarbeiter, Hausmeister, Dienstleister und sonstige Personen, deren Daten der Kunde im Zusammenhang mit einer Übergabe dokumentiert.</p>
+<h3>5. Weisungen und Verantwortlichkeit</h3>
+<p>Der Kunde bestimmt Zwecke und Mittel seiner fachlichen Verarbeitung und ist für deren Rechtmäßigkeit verantwortlich. Die Nutzung der in der Anwendung vorgesehenen Funktionen gilt als dokumentierte Weisung. Zusätzliche Weisungen können in Textform an info@uebergabe-check.de erteilt werden. Hält ÜbergabeCheck eine Weisung für datenschutzwidrig, wird der Kunde hierauf hingewiesen und die Ausführung darf bis zur Klärung ausgesetzt werden.</p>
+<h3>6. Vertraulichkeit</h3>
+<p>ÜbergabeCheck stellt sicher, dass Personen, die Zugriff auf im Auftrag verarbeitete personenbezogene Daten erhalten, zur Vertraulichkeit verpflichtet sind oder einer angemessenen gesetzlichen Verschwiegenheitspflicht unterliegen und Daten nur im erforderlichen Umfang verarbeiten.</p>
+<h3>7. Technische und organisatorische Maßnahmen (TOM)</h3>
+<p>Unter Berücksichtigung des Stands der Technik, der Implementierungskosten sowie Art, Umfang, Umständen und Zwecken der Verarbeitung werden insbesondere folgende Maßnahmen eingesetzt:</p>
+<ul><li>verschlüsselte Übertragung der Webanwendung und Backend-Kommunikation über HTTPS/TLS</li><li>Authentifizierung für Business-Konten und kontobezogene Zugriffssteuerung</li><li>Mandantentrennung über Unternehmenszuordnung und datenbankseitige Row-Level-Security-Regeln</li><li>serverseitige Speicherung geheimer Schlüssel; keine Stripe- oder Service-Role-Geheimnisse im Browser</li><li>rollen- und zweckgebundene Zugriffsrechte sowie Beschränkung administrativer Zugriffe</li><li>Änderungs- und Sicherheitsupdates an Anwendung und Backend</li><li>technische Plausibilitäts- und Datenbankregeln zum Schutz vor unbeabsichtigter Vermischung von Mandantendaten</li><li>Verfahren zur Löschung bzw. Einschränkung von Daten und zur Bearbeitung von Sicherheitsvorfällen</li><li>Auswahl von Hosting- und Backend-Dienstleistern mit geeigneten Sicherheitsmaßnahmen</li></ul>
+<h3>8. Unterauftragsverarbeiter</h3>
+<p>Der Kunde erteilt eine allgemeine Genehmigung zum Einsatz der nachfolgend aufgeführten Unterauftragsverarbeiter, soweit diese personenbezogene Daten im Rahmen der Auftragsverarbeitung verarbeiten:</p>
+<ul><li><strong>Supabase</strong> – Backend, Authentifizierung und Datenbank; für das ÜbergabeCheck-Business-Projekt ist eine EU-Projektregion (Frankfurt) eingerichtet.</li><li><strong>STRATO AG</strong> – Hosting und Auslieferung der Webanwendung sowie technisch erforderliche Server-/Verbindungsprotokolle.</li></ul>
+<p>Beabsichtigte wesentliche Änderungen bei Unterauftragsverarbeitern werden dem Kunden in geeigneter Form, insbesondere per E-Mail oder innerhalb der Anwendung, angekündigt. Der Kunde kann aus berechtigten datenschutzrechtlichen Gründen widersprechen. Ist keine zumutbare Alternative möglich, kann das Vertragsverhältnis hinsichtlich der betroffenen Leistung beendet werden.</p>
+<h3>9. Unterstützung des Kunden</h3>
+<p>ÜbergabeCheck unterstützt den Kunden im Rahmen der verfügbaren Informationen und unter Berücksichtigung der Art der Verarbeitung bei der Erfüllung von Betroffenenrechten sowie bei Pflichten nach Art. 32 bis 36 DSGVO, insbesondere bei Sicherheitsvorfällen, Datenschutz-Folgenabschätzungen und Anfragen von Aufsichtsbehörden.</p>
+<h3>10. Datenschutzverletzungen</h3>
+<p>ÜbergabeCheck informiert den Kunden unverzüglich, nachdem eine Verletzung des Schutzes personenbezogener Daten bekannt geworden ist, soweit Daten des Kunden betroffen sind, und stellt die verfügbaren Informationen bereit, die der Kunde für seine gesetzlichen Melde- und Benachrichtigungspflichten benötigt.</p>
+<h3>11. Nachweise und Kontrollen</h3>
+<p>ÜbergabeCheck stellt dem Kunden auf Anfrage angemessene Informationen zum Nachweis der Einhaltung der Pflichten aus Art. 28 DSGVO zur Verfügung. Prüfungen sind unter angemessener Vorankündigung und unter Wahrung der Sicherheit, Vertraulichkeit sowie Rechte anderer Kunden durchzuführen. Vor-Ort-Prüfungen sollen nur erfolgen, wenn geeignete Dokumentations- oder Fernprüfungen nicht ausreichen.</p>
+<h3>12. Rückgabe und Löschung</h3>
+<p>Nach Ende der Auftragsverarbeitung werden personenbezogene Inhaltsdaten nach Wahl des Kunden gelöscht oder – soweit technisch vorgesehen – zur Verfügung gestellt, sofern keine gesetzliche Pflicht zur weiteren Speicherung besteht. Der Kunde kann die Löschung seines Unternehmenskontos und seiner Inhaltsdaten verlangen. Die Regelungen zu inaktiven Konten in den AGB bleiben ergänzend anwendbar.</p>
+<h3>13. Rangfolge</h3>
+<p>Bei Widersprüchen zwischen diesem AVV und den AGB gehen für Fragen der Auftragsverarbeitung die Regelungen dieses AVV vor. Im Übrigen gelten die AGB für ÜbergabeCheck Business.</p>
+</div>
+</div>
+
+<div class="impressum-overlay legal-document-overlay hidden" id="datenschutzOverlay" onclick="if(event.target===this) closeDatenschutz()">
+<div aria-labelledby="datenschutzTitle" aria-modal="true" class="privacy-modal legal-document" role="dialog">
+<div class="impressum-head"><h2 id="datenschutzTitle">Datenschutzerklärung – ÜbergabeCheck Business</h2><button class="impressum-close" onclick="closeDatenschutz()" type="button">Schließen</button></div>
+<p><strong>Stand: 26. August 2026</strong></p>
 <h3>1. Verantwortlicher</h3>
-<p>
-      Verantwortlich für die Verarbeitung personenbezogener Daten auf dieser Website ist:<br/><br/>
-<strong>Sven Mettmann</strong><br/>
-      Weiherstraße 30<br/>
-      89522 Heidenheim an der Brenz<br/><br/>
-      E-Mail: <strong>info@uebergabe-check.de</strong>
-</p>
-<h3>2. Allgemeine Hinweise</h3>
-<p>
-      ÜbergabeCheck Business ist eine Webanwendung zur zentralen Verwaltung von Objekten, Wohnungen,
-      Wohnungsübergaben und festgestellten Mängeln. Für die Nutzung eines Unternehmenskontos werden
-      Anmelde- und Kontodaten verarbeitet. Angaben aus gespeicherten Übergaben werden dem jeweiligen
-      Unternehmenskonto und der zugehörigen Wohnung zugeordnet.
-    </p>
-<h3>3. Speicherung und Verarbeitung in ÜbergabeCheck Business</h3>
-<p>
-      Während einer laufenden Übergabe kann ein technischer Entwurf vorübergehend im Browser des
-      verwendeten Geräts gespeichert werden. Dauerhaft gespeicherte Objekte, Wohnungen, Übergaben,
-      Mängelangaben, Fotos und Unterschriften werden im Business-Bereich zentral gespeichert und dem
-      jeweiligen Unternehmenskonto zugeordnet. Das Löschen lokaler Browserdaten entfernt daher nicht
-      automatisch bereits zentral gespeicherte Business-Datensätze.
-    </p>
-<h3>4. Authentifizierung und Datenbank mit Supabase</h3>
-<p>
-      Für Registrierung, Anmeldung und die zentrale Speicherung der Business-Daten verwenden wir
-      <strong>Supabase</strong>. Dabei werden insbesondere Kontodaten sowie die vom angemeldeten Unternehmen
-      angelegten Objekte, Wohnungen und Übergabedaten verarbeitet. Der Zugriff auf die Business-Daten
-      erfolgt kontobezogen über die für ÜbergabeCheck eingerichtete Supabase-Infrastruktur.
-    </p>
-<h3>5. Webanalyse mit Umami</h3>
-<p>
-      Zur Auswertung der Nutzung unserer Website verwenden wir <strong>Umami Cloud</strong>,
-      einen datenschutzorientierten Webanalysedienst der Umami Software, Inc.
-      Umami verwendet nach eigenen Angaben keine Cookies und kein seitenübergreifendes
-      Tracking und erhebt keine personenbezogenen Daten zur Identifizierung einzelner
-      Besucher. Erfasst werden unter anderem Seitenaufrufe, Referrer, Browser,
-      Betriebssystem, Gerätetyp und Herkunftsland. Die Daten werden anonymisiert.
-    </p>
-<p>
-      Wir verwenden Umami ausschließlich, um die Nutzung von ÜbergabeCheck zu verstehen
-      und die Anwendung zu verbessern. Zusätzlich werden einzelne Aktionen wie
-      „Übergabe gestartet“ und „Protokoll erstellt“ als anonyme Ereignisse erfasst.
-      Es werden dabei keine Inhalte des Übergabeprotokolls, Namen, Adressen, Fotos oder
-      Unterschriften an Umami übermittelt.
-    </p>
-<p>
-      Weitere Informationen zur Datenverarbeitung stellt Umami in seiner eigenen
-      Datenschutzdokumentation bereit.
-    </p>
-<h3>6. Hosting durch STRATO</h3>
-<p>
-      Diese Website wird über <strong>STRATO</strong> bereitgestellt.
-      Beim Aufruf der Website können technisch notwendige Verbindungsdaten wie insbesondere
-      IP-Adresse, Zeitpunkt des Zugriffs, aufgerufene Ressource sowie Browser- und Geräteinformationen
-      durch den Hostinganbieter verarbeitet werden. Dies dient der sicheren und zuverlässigen
-      Bereitstellung der Website.
-    </p>
-<h3>7. Rechtsgrundlage</h3>
-<p>
-      Soweit personenbezogene Daten verarbeitet werden, erfolgt die Verarbeitung
-      insbesondere zur Bereitstellung und Absicherung der Website sowie – soweit
-      erforderlich – auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes
-      Interesse an einem sicheren und funktionierenden Betrieb sowie an der
-      Verbesserung des Angebots).
-    </p>
-<h3>8. Deine Rechte</h3>
-<p>
-      Du hast nach Maßgabe der DSGVO insbesondere das Recht auf Auskunft, Berichtigung,
-      Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch
-      gegen bestimmte Verarbeitungen. Außerdem besteht ein Beschwerderecht bei einer
-      Datenschutzaufsichtsbehörde.
-    </p>
-<h3>9. Änderungen</h3>
-<p>
-      Diese Datenschutzerklärung kann angepasst werden, wenn sich die technische
-      Ausgestaltung oder die eingesetzten Dienste ändern.
-    </p>
+<p>Verantwortlich für eigene Verarbeitungen im Zusammenhang mit Website, Unternehmenskonto, Vertrag und Abrechnung ist:<br><br><strong>Sven Mettmann / ÜbergabeCheck</strong><br>Weiherstraße 30<br>89522 Heidenheim an der Brenz<br><br>E-Mail: <strong>info@uebergabe-check.de</strong></p>
+<h3>2. Rollen bei Business-Daten</h3>
+<p>Bei Konto-, Vertrags-, Support-, Sicherheits- und Zahlungsdaten verarbeitet ÜbergabeCheck personenbezogene Daten für eigene Zwecke als Verantwortlicher. Soweit ein Unternehmenskunde Daten von Mietern, Vermietern oder anderen Personen in Objekten, Wohnungen und Übergabeprotokollen speichert, verarbeitet ÜbergabeCheck diese Inhaltsdaten grundsätzlich im Auftrag des Unternehmenskunden. Hierfür gilt der elektronisch abgeschlossene AVV nach Art. 28 DSGVO.</p>
+<h3>3. Registrierung, Anmeldung und Vertragsverwaltung</h3>
+<p>Bei Registrierung und Nutzung verarbeiten wir insbesondere Unternehmensname, Ansprechpartner, geschäftliche E-Mail-Adresse, Authentifizierungsdaten, Kontozuordnung, Tarifstatus und rechtliche Zustimmungen. Die Verarbeitung ist für die Bereitstellung des Dienstes und die Durchführung des Vertrags erforderlich. Rechtsgrundlagen sind je nach Einzelfall Art. 6 Abs. 1 lit. b DSGVO sowie Art. 6 Abs. 1 lit. f DSGVO, insbesondere für sicheren Betrieb, Missbrauchsschutz und die Verwaltung von Unternehmenskonten.</p>
+<h3>4. Inhalte in ÜbergabeCheck Business</h3>
+<p>Während einer laufenden Übergabe kann ein technischer Entwurf vorübergehend im Browser gespeichert werden. Dauerhaft gespeicherte Objekte, Wohnungen, Übergaben, Mängelangaben, Fotos, Zählerstände und Unterschriften werden zentral dem jeweiligen Unternehmenskonto zugeordnet. Für diese vom Kunden eingegebenen Inhalte bestimmt grundsätzlich der Unternehmenskunde Zweck und Rechtsgrundlage der Verarbeitung.</p>
+<h3>5. Technisch notwendige Browser-Speicherung</h3>
+<p>Die Anwendung kann technisch notwendige Browser-Speichermechanismen einsetzen, insbesondere um Anmeldesitzungen und vorübergehende Entwürfe zu verwalten. Diese Funktionen dienen dem Betrieb der Anwendung und werden nicht für werbliche Profilbildung eingesetzt.</p>
+<h3>6. Supabase</h3>
+<p>Für Authentifizierung, Kontozuordnung, Datenbank und zentrale Speicherung verwenden wir Supabase. Dabei werden je nach Nutzung Konto- und Anmeldedaten sowie die vom Unternehmenskunden gespeicherten Business-Inhalte verarbeitet. Das ÜbergabeCheck-Business-Projekt ist in einer EU-Projektregion (Frankfurt) eingerichtet.</p>
+<h3>7. Zahlungsabwicklung mit Stripe</h3>
+<p>Für kostenpflichtige Business-Abonnements verwenden wir Stripe. Im Rahmen des Checkout-, Rechnungs- und Abonnementprozesses werden insbesondere Name bzw. Unternehmensname, Rechnungsadresse, E-Mail-Adresse, Zahlungsart, Transaktionsdaten, Rechnungsdaten und gegebenenfalls Steuerkennzeichen an Stripe übermittelt. Zahlungsdaten wie Karten- oder Kontoinformationen werden direkt über Stripe verarbeitet und nicht als vollständige Zahlungsdaten in ÜbergabeCheck gespeichert.</p>
+<p>Die Verarbeitung dient dem Abschluss und der Durchführung des kostenpflichtigen Vertrags, der Zahlungsabwicklung, Rechnungsstellung, Betrugsprävention und der Erfüllung gesetzlicher Pflichten. Rechtsgrundlagen sind insbesondere Art. 6 Abs. 1 lit. b, lit. c und – soweit einschlägig – lit. f DSGVO.</p>
+<h3>8. Webanalyse mit Umami Cloud</h3>
+<p>Zur Auswertung und Verbesserung der Anwendung verwenden wir Umami Cloud. Erfasst werden technische Nutzungsinformationen wie Seitenaufrufe, Referrer, Browser, Betriebssystem, Gerätetyp und Herkunftsland sowie ausgewählte Nutzungsereignisse. Inhalte von Übergabeprotokollen, Namen, Adressen, Fotos und Unterschriften werden nicht als Analyseereignisse an Umami übermittelt. Die Analyse dient unserem berechtigten Interesse an der technischen und wirtschaftlichen Verbesserung des Dienstes gemäß Art. 6 Abs. 1 lit. f DSGVO.</p>
+<h3>9. Hosting durch STRATO</h3>
+<p>Die Webanwendung wird über STRATO bereitgestellt. Beim Aufruf können technisch notwendige Verbindungsdaten wie IP-Adresse, Zeitpunkt, aufgerufene Ressource sowie Browser- und Geräteinformationen in Serverprotokollen verarbeitet werden. Dies dient der sicheren und zuverlässigen Bereitstellung des Dienstes auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO.</p>
+<h3>10. E-Mails und Benachrichtigungen</h3>
+<p>Im Zusammenhang mit Registrierung, Passwort-Wiederherstellung, Zahlung, Rechnung und Abonnement können technisch oder vertraglich erforderliche E-Mails durch die jeweils eingesetzten Dienste, insbesondere Supabase und Stripe, versendet werden.</p>
+<h3>11. Empfänger und Drittstaaten</h3>
+<p>Daten werden nur an Dienstleister und Empfänger übermittelt, soweit dies für Betrieb, Sicherheit, Vertrag, Zahlung oder gesetzliche Pflichten erforderlich ist. Soweit ein eingesetzter Dienstleister Daten außerhalb des Europäischen Wirtschaftsraums verarbeitet oder Zugriffsmöglichkeiten aus Drittstaaten bestehen, werden – soweit erforderlich – geeignete Garantien nach Kapitel V DSGVO zugrunde gelegt.</p>
+<h3>12. Speicherdauer</h3>
+<p>Konto- und Vertragsdaten werden für die Dauer des Vertragsverhältnisses und anschließend entsprechend gesetzlicher Aufbewahrungs- und Verjährungsfristen gespeichert. Inhaltsdaten eines Unternehmenskunden werden nach Maßgabe des AVV, der Kontonutzung und der in den AGB beschriebenen Regelungen aufbewahrt oder gelöscht. Technische Protokolldaten werden nur so lange gespeichert, wie dies für Sicherheit, Fehleranalyse und Betrieb erforderlich ist.</p>
+<h3>13. Pflicht zur Bereitstellung</h3>
+<p>Die für Registrierung, Vertrag und Zahlung als Pflichtfelder gekennzeichneten Daten sind für die jeweilige Leistung erforderlich. Ohne diese Angaben kann das Unternehmenskonto bzw. ein kostenpflichtiges Abonnement nicht bereitgestellt werden.</p>
+<h3>14. Rechte betroffener Personen</h3>
+<p>Betroffene Personen haben nach Maßgabe der DSGVO insbesondere Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Soweit ÜbergabeCheck Daten ausschließlich im Auftrag eines Unternehmenskunden verarbeitet, ist grundsätzlich dieser Unternehmenskunde die erste Anlaufstelle; ÜbergabeCheck unterstützt ihn nach Maßgabe des AVV.</p>
+<h3>15. Beschwerderecht</h3>
+<p>Es besteht das Recht, sich bei einer zuständigen Datenschutzaufsichtsbehörde zu beschweren.</p>
+<h3>16. Änderungen</h3>
+<p>Diese Datenschutzerklärung wird angepasst, wenn sich Funktionen, Rechtslage oder eingesetzte Dienste ändern.</p>
 </div>
 </div>
 <script>
-function openDatenschutz(){document.getElementById("datenschutzOverlay").classList.remove("hidden");}
-function closeDatenschutz(){document.getElementById("datenschutzOverlay").classList.add("hidden");}
+function openAGB(){document.getElementById("agbOverlay")?.classList.remove("hidden");}
+function closeAGB(){document.getElementById("agbOverlay")?.classList.add("hidden");}
+function openAVV(){document.getElementById("avvOverlay")?.classList.remove("hidden");}
+function closeAVV(){document.getElementById("avvOverlay")?.classList.add("hidden");}
+function openDatenschutz(){document.getElementById("datenschutzOverlay")?.classList.remove("hidden");}
+function closeDatenschutz(){document.getElementById("datenschutzOverlay")?.classList.add("hidden");}
 document.addEventListener("DOMContentLoaded",()=>{
   const hash=(window.location.hash||"").toLowerCase();
   if(hash==="#impressum") openImpressum();
   else if(hash==="#datenschutz") openDatenschutz();
+  else if(hash==="#agb") openAGB();
+  else if(hash==="#avv") openAVV();
 });
 const baseRoomNames=["Flur","Wohnzimmer","Schlafzimmer","Kinderzimmer","Küche","Badezimmer","WC","Balkon","Keller","Garage","Abstellraum"];
 let customRooms=[];
@@ -1798,6 +1867,10 @@ let businessCompanyProfile={name:"",contact_name:"",street:"",zip:"",city:"",pho
 window.businessCompanyProfile=businessCompanyProfile;
 let businessSubscription=null;
 window.businessSubscription=businessSubscription;
+const BUSINESS_TERMS_VERSION="2026-08-26";
+const BUSINESS_AVV_VERSION="2026-08-26";
+let businessLegalAcceptance=null;
+window.businessLegalAcceptance=businessLegalAcceptance;
 
 let businessDataLoading = false;
 let businessDataLoadedForUser = null;
@@ -1970,6 +2043,74 @@ function companyLetterheadHtml(){
   </div>`;
 }
 
+function hasCurrentBusinessLegalAcceptance(){
+  return !!(businessLegalAcceptance && businessLegalAcceptance.b2b_confirmed===true && businessLegalAcceptance.terms_version===BUSINESS_TERMS_VERSION && businessLegalAcceptance.avv_version===BUSINESS_AVV_VERSION);
+}
+
+async function loadBusinessLegalAcceptance(companyId){
+  if(!companyId||!supabaseClient)return null;
+  const {data,error}=await supabaseClient
+    .from("business_legal_acceptances")
+    .select("company_id,user_id,terms_version,avv_version,b2b_confirmed,source,accepted_at")
+    .eq("company_id",companyId)
+    .eq("terms_version",BUSINESS_TERMS_VERSION)
+    .eq("avv_version",BUSINESS_AVV_VERSION)
+    .eq("b2b_confirmed",true)
+    .order("accepted_at",{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(error)throw error;
+  businessLegalAcceptance=data||null;
+  window.businessLegalAcceptance=businessLegalAcceptance;
+  return businessLegalAcceptance;
+}
+
+function openBusinessLegalGate(){
+  if(hasCurrentBusinessLegalAcceptance())return;
+  document.getElementById("businessLegalGate")?.classList.remove("hidden");
+  document.body.style.overflow="hidden";
+}
+
+function closeBusinessLegalGate(){
+  document.getElementById("businessLegalGate")?.classList.add("hidden");
+  document.body.style.overflow="";
+}
+
+async function persistBusinessLegalAcceptance(source="app_gate"){
+  if(!supabaseClient||!supabaseUser)throw new Error("Nicht angemeldet");
+  const {data,error}=await supabaseClient.functions.invoke("accept-business-legal",{body:{b2bConfirmed:true,termsAccepted:true,avvAccepted:true,source}});
+  if(error)throw error;
+  if(!data?.acceptance)throw new Error(data?.error||"Bestätigung konnte nicht gespeichert werden");
+  businessLegalAcceptance=data.acceptance;
+  window.businessLegalAcceptance=businessLegalAcceptance;
+  return businessLegalAcceptance;
+}
+
+async function maybePersistRegistrationLegalAcceptance(user){
+  if(hasCurrentBusinessLegalAcceptance())return true;
+  const m=user?.user_metadata||{};
+  if(m.b2b_confirmed===true && m.legal_terms_version===BUSINESS_TERMS_VERSION && m.avv_version===BUSINESS_AVV_VERSION){
+    try{await persistBusinessLegalAcceptance("registration");return true;}catch(error){console.error("Rechtliche Registrierung speichern:",error);}
+  }
+  return false;
+}
+
+async function acceptBusinessLegalFromGate(){
+  const b2b=document.getElementById("businessLegalB2B")?.checked===true;
+  const terms=document.getElementById("businessLegalTerms")?.checked===true;
+  if(!b2b||!terms){alert("Bitte bestätige beide Punkte, um ÜbergabeCheck Business zu nutzen.");return;}
+  const button=document.getElementById("businessLegalAcceptButton");
+  if(button){button.disabled=true;button.textContent="Wird gespeichert …";}
+  try{
+    await persistBusinessLegalAcceptance("app_gate");
+    closeBusinessLegalGate();
+    refreshBusinessSubscriptionUI();
+  }catch(error){
+    console.error("Rechtliche Bestätigung:",error);
+    alert("Die Bestätigung konnte nicht gespeichert werden. Bitte versuche es erneut.");
+  }finally{if(button){button.disabled=false;button.textContent="Zustimmen & fortfahren";}}
+}
+
 function getBusinessAccessState(){
   const s=businessSubscription;
   if(!s)return {hasAccess:false,effectiveStatus:"loading",daysRemaining:null};
@@ -1985,10 +2126,11 @@ function getBusinessAccessState(){
 }
 
 function businessHasWriteAccess(){
-  return getBusinessAccessState().hasAccess;
+  return getBusinessAccessState().hasAccess && hasCurrentBusinessLegalAcceptance();
 }
 
 function requireBusinessWriteAccess(){
+  if(!hasCurrentBusinessLegalAcceptance()){openBusinessLegalGate();return false;}
   if(businessHasWriteAccess())return true;
   const state=getBusinessAccessState();
   if(state.effectiveStatus==="loading") alert("Der Tarifstatus wird noch geladen. Bitte versuche es gleich noch einmal.");
@@ -2021,7 +2163,7 @@ function refreshBusinessSubscriptionUI(){
     notice.classList.add("trial");
     const end=businessSubscription?.trial_ends_at?new Date(businessSubscription.trial_ends_at).toLocaleDateString("de-DE"):"–";
     title.textContent="Kostenlose Testphase aktiv";
-    text.textContent=`Noch ${state.daysRemaining} ${state.daysRemaining===1?"Tag":"Tage"} · endet am ${end} · danach 29,99 € / Monat`;
+    text.textContent=`Noch ${state.daysRemaining} ${state.daysRemaining===1?"Tag":"Tage"} · endet am ${end} · danach Freischaltung für 29,99 € / Monat erforderlich`;
     pill.textContent="TESTPHASE";
     action.textContent="Jetzt freischalten";
     action.onclick=startStripeCheckout;
@@ -2068,6 +2210,7 @@ function refreshBusinessSubscriptionUI(){
 
 async function startStripeCheckout(){
   if(!supabaseClient||!supabaseUser){alert("Bitte melde dich erneut an.");return;}
+  if(!hasCurrentBusinessLegalAcceptance()){openBusinessLegalGate();return;}
   const action=document.getElementById("businessSubscriptionAction");
   const old=action?.textContent||"";
   if(action){action.disabled=true;action.textContent="Checkout wird geöffnet …";}
@@ -2130,13 +2273,20 @@ async function loadBusinessSubscription(companyId){
 
 async function loadBusinessData(user){
   if(!user||!supabaseClient) return;
-  if(businessDataLoadedForUser===user.id){if(businessCompanyId)await loadBusinessSubscription(businessCompanyId);renderBusinessObjects();updateBusinessStats();return;}
+  if(businessDataLoadedForUser===user.id){
+    if(businessCompanyId){await loadBusinessSubscription(businessCompanyId);await loadBusinessLegalAcceptance(businessCompanyId);if(!hasCurrentBusinessLegalAcceptance())await maybePersistRegistrationLegalAcceptance(user);refreshBusinessSubscriptionUI();if(!hasCurrentBusinessLegalAcceptance())setTimeout(openBusinessLegalGate,0);}
+    renderBusinessObjects();updateBusinessStats();return;
+  }
   if(businessDataLoading) return;
   businessDataLoading=true;
   try{
     const companyId=await ensureBusinessCompany(user);
     await loadBusinessCompanyProfile(companyId);
     await loadBusinessSubscription(companyId);
+    await loadBusinessLegalAcceptance(companyId);
+    if(!hasCurrentBusinessLegalAcceptance())await maybePersistRegistrationLegalAcceptance(user);
+    refreshBusinessSubscriptionUI();
+    if(!hasCurrentBusinessLegalAcceptance())setTimeout(openBusinessLegalGate,0);
     handleStripeCheckoutReturn();
     const {data:objects,error:objectError}=await supabaseClient.from("objects").select("id,company_id,name,street,zip,city,note,created_at").eq("company_id",companyId).order("created_at",{ascending:true});
     if(objectError) throw objectError;
@@ -2278,6 +2428,8 @@ async function businessRegister(event){
   const email = document.getElementById("registerEmail")?.value.trim();
   const password = document.getElementById("registerPassword")?.value || "";
   const repeat = document.getElementById("registerPasswordRepeat")?.value || "";
+  const b2bConfirmed = document.getElementById("registrationB2B")?.checked === true;
+  const legalAccepted = document.getElementById("registrationLegal")?.checked === true;
   const error = document.getElementById("registrationError");
   const button = event.submitter;
 
@@ -2307,6 +2459,12 @@ async function businessRegister(event){
     return;
   }
 
+  if(!b2bConfirmed || !legalAccepted){
+    error.textContent = "ÜbergabeCheck Business ist ein B2B-Angebot. Bitte bestätige Unternehmerstatus, AGB und AVV.";
+    error.classList.remove("hidden");
+    return;
+  }
+
   if(button) button.disabled = true;
 
   const { data, error: authError } = await supabaseClient.auth.signUp({
@@ -2316,7 +2474,11 @@ async function businessRegister(event){
       data: {
         company_name: company,
         contact_name: contact,
-        account_type: "business"
+        account_type: "business",
+        b2b_confirmed: true,
+        legal_terms_version: BUSINESS_TERMS_VERSION,
+        avv_version: BUSINESS_AVV_VERSION,
+        legal_accepted_at: new Date().toISOString()
       }
     }
   });
