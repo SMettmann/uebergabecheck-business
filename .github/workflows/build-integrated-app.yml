@@ -37,6 +37,9 @@ jobs:
           grep -q "resetRoleState" app.html
           grep -q "Keine Berechtigung" app.html
           grep -q "businessTeamButton" app.html
+          grep -q 'BUSINESS_TERMS_VERSION="2026-08-27-2"' app.html
+          grep -q 'BUSINESS_AVV_VERSION="2026-08-27-2"' app.html
+          grep -q "bis zu 10 zusätzliche Mitarbeiterzugänge" app.html
           grep -q "revalidateTeamSession" team.html
           grep -q "onAuthStateChange" team.html
 
@@ -49,5 +52,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add app.html team.html
-          git commit -m "Build Business app with session-safe team permissions"
+          git commit -m "Build Business app with current legal and team permissions"
           git push
