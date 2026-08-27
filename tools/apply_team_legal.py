@@ -5,7 +5,6 @@ html = path.read_text(encoding='utf-8')
 
 replacements = [
     ('Stand: 27. August 2026 · Version 2026-08-27</strong>', 'Stand: 27. August 2026 · Version 2026-08-27-2</strong>'),
-    ('nach Art. 28 DSGVO · Stand: 27. August 2026 · Version 2026-08-27</strong>', 'nach Art. 28 DSGVO · Stand: 27. August 2026 · Version 2026-08-27-2</strong>'),
     ('const BUSINESS_TERMS_VERSION="2026-08-27";', 'const BUSINESS_TERMS_VERSION="2026-08-27-2";'),
     ('const BUSINESS_AVV_VERSION="2026-08-27";', 'const BUSINESS_AVV_VERSION="2026-08-27-2";'),
     ('Danach bei aktiver Buchung 29,99 € / Monat · jederzeit kündbar · keine automatische Umwandlung', 'Danach bei aktiver Buchung 29,99 € / Monat · Inhaber + bis zu 10 Mitarbeiter inklusive · jederzeit kündbar · keine automatische Umwandlung'),
