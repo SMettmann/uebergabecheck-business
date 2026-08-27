@@ -3,6 +3,10 @@ from pathlib import Path
 path = Path('team.html')
 html = path.read_text(encoding='utf-8')
 
+if 'async function revalidateTeamSession()' in html and 'client.auth.onAuthStateChange' in html:
+    print('team.html session revalidation already present')
+    raise SystemExit(0)
+
 old_load = '''async function loadTeam(){const {data}=await client.auth.getSession();if(!data?.session){only("loginView");return;}try{teamData=await invoke("manage-team",{action:"list"});only("teamView");renderTeam();}catch(e){only("loginView");status("loginStatus",e.message,"error");}}'''
 new_load = '''async function loadTeam(){
   const {data}=await client.auth.getSession();
