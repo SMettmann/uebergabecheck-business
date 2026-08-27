@@ -1,15 +1,21 @@
 from pathlib import Path
+import re
 
 path = Path('index.html')
 html = path.read_text(encoding='utf-8')
 
-old = '''<div class="site-footer">
-    ÜbergabeCheck · <a onclick="openImpressum()">Impressum</a> · <a onclick="openDatenschutz()">Datenschutz</a>
-</div>'''
+pattern = re.compile(
+    r'<div class="site-footer">\s*'
+    r'ÜbergabeCheck\s*·\s*'
+    r'<a onclick="openImpressum\(\)">Impressum</a>\s*·\s*'
+    r'<a onclick="openDatenschutz\(\)">Datenschutz</a>\s*'
+    r'</div>',
+    re.S,
+)
 
-if old not in html:
-    raise SystemExit('Duplicate dashboard footer not found')
+html, count = pattern.subn('', html, count=1)
+if count != 1:
+    raise SystemExit(f'Duplicate dashboard footer matches: {count}')
 
-html = html.replace(old, '', 1)
 path.write_text(html, encoding='utf-8')
 print('Removed duplicate dashboard legal footer')
