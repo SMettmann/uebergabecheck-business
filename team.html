@@ -57,7 +57,24 @@ function status(id,text,type=""){const e=document.getElementById(id);if(!e)retur
 async function invoke(name,body){const {data,error}=await client.functions.invoke(name,{body});if(error){let m=error.message||"Anfrage fehlgeschlagen";try{const c=await error.context?.json?.();if(c?.error)m=c.error;}catch(_){}throw new Error(data?.error||m);}if(data?.error)throw new Error(data.error);return data;}
 
 async function teamLogin(e){e.preventDefault();status("loginStatus","Wird angemeldet …");const {error}=await client.auth.signInWithPassword({email:document.getElementById("loginEmail").value.trim(),password:document.getElementById("loginPassword").value});if(error){status("loginStatus","Anmeldung fehlgeschlagen. Bitte Zugangsdaten prüfen.","error");return;}await loadTeam();}
-async function loadTeam(){const {data}=await client.auth.getSession();if(!data?.session){only("loginView");return;}try{teamData=await invoke("manage-team",{action:"list"});only("teamView");renderTeam();}catch(e){only("loginView");status("loginStatus",e.message,"error");}}
+async function loadTeam(){
+  const {data}=await client.auth.getSession();
+  if(!data?.session){teamData=null;only("loginView");return;}
+  try{
+    teamData=await invoke("manage-team",{action:"list"});
+    only("teamView");
+    renderTeam();
+  }catch(e){
+    teamData=null;
+    const message=String(e?.message||"");
+    if(message.toLowerCase().includes("berechtigung")){
+      location.replace(APP_URL);
+      return;
+    }
+    only("loginView");
+    status("loginStatus",message||"Teamverwaltung konnte nicht geladen werden.","error");
+  }
+}
 function renderTeam(){document.getElementById("companyName").textContent=teamData.company?.name||"Unternehmen";const p=document.getElementById("rolePill");p.textContent=roleLabel(teamData.currentRole);p.className=`pill ${roleClass(teamData.currentRole)}`;document.getElementById("memberCount").textContent=`${teamData.usedMembers}/${teamData.limit} Mitarbeiterplätze`;if(teamData.currentRole==="admin")document.querySelector('#newRole option[value="admin"]')?.remove();const full=teamData.availableSlots<=0;["newEmail","newRole","inviteButton"].forEach(id=>document.getElementById(id).disabled=full);if(full)status("teamStatus","Alle Mitarbeiterplätze sind belegt oder reserviert.");document.getElementById("membersList").innerHTML=(teamData.members||[]).map(m=>{const edit=teamData.currentRole==="owner"&&m.role!=="owner";const remove=m.role!=="owner"&&(teamData.currentRole==="owner"||(teamData.currentRole==="admin"&&m.role==="member"));return `<div class="row"><div class="person"><strong>${esc(m.display_name||m.email||"Teammitglied")}</strong><small>${esc(m.email||"")}</small></div><div class="actions"><span class="pill ${roleClass(m.role)}">${roleLabel(m.role)}</span>${edit?`<select onchange="changeRole('${esc(m.user_id)}',this.value)"><option value="member" ${m.role==="member"?"selected":""}>Mitarbeiter</option><option value="admin" ${m.role==="admin"?"selected":""}>Admin</option></select>`:""}${remove?`<button class="danger" type="button" onclick="removeMember('${esc(m.user_id)}','${esc(m.display_name||m.email||"Teammitglied")}')">Entfernen</button>`:""}</div></div>`}).join("")||'<div class="empty">Keine Teammitglieder vorhanden.</div>';document.getElementById("invitesList").innerHTML=(teamData.invitations||[]).map(i=>`<div class="row"><div class="person"><strong>${esc(i.email)}</strong><small>${roleLabel(i.role)} · gültig bis ${new Date(i.expires_at).toLocaleDateString("de-DE")}</small></div><div class="actions"><button class="secondary" type="button" onclick="resendInvite('${esc(i.email)}','${esc(i.role)}')">Erneut senden</button><button class="danger" type="button" onclick="revokeInvite('${esc(i.id)}')">Zurückziehen</button></div></div>`).join("")||'<div class="empty">Keine offenen Einladungen.</div>';}
 async function reloadTeam(){teamData=await invoke("manage-team",{action:"list"});renderTeam();}
 async function sendInvite(emailOverride="",roleOverride=""){const email=(emailOverride||document.getElementById("newEmail").value).trim(),role=roleOverride||document.getElementById("newRole").value;if(!email){status("teamStatus","Bitte eine E-Mail-Adresse eingeben.","error");return;}const b=document.getElementById("inviteButton");b.disabled=true;b.textContent="Wird gesendet …";try{await invoke("manage-team",{action:"invite",email,role});document.getElementById("newEmail").value="";status("teamStatus",`Einladung an ${email} wurde versendet.`,"ok");await reloadTeam();}catch(e){status("teamStatus",e.message,"error");}finally{b.disabled=false;b.textContent="Einladen →";}}
@@ -73,6 +90,38 @@ async function inviteLogin(e){e.preventDefault();const {error}=await client.auth
 async function inviteRegister(e){e.preventDefault();const name=document.getElementById("inviteName").value.trim(),password=document.getElementById("invitePassword").value,repeat=document.getElementById("inviteRepeat").value,email=document.getElementById("inviteRegisterEmail").value;if(!name){status("inviteStatus","Bitte Namen eingeben.","error");return}if(password.length<8){status("inviteStatus","Passwort mindestens 8 Zeichen.","error");return}if(password!==repeat){status("inviteStatus","Passwörter stimmen nicht überein.","error");return}const {data,error}=await client.auth.signUp({email,password,options:{emailRedirectTo:`${TEAM_URL}?invite=${encodeURIComponent(inviteToken)}`,data:{full_name:name,contact_name:name,account_type:"business_member"}}});if(error){status("inviteStatus",error.message,"error");return}if(data?.session)await acceptInvite();else status("inviteStatus","Zugang erstellt. Bitte E-Mail bestätigen und danach den Einladungslink erneut öffnen.","ok")}
 async function acceptInvite(){const b=document.getElementById("acceptButton");if(b){b.disabled=true;b.textContent="Wird angenommen …"}try{const d=await invoke("accept-team-invite",{token:inviteToken});document.querySelector("#inviteView .card").innerHTML=`<div class="success"><strong>Einladung angenommen.</strong><br>Du gehörst jetzt zu <strong>${esc(d.companyName||inviteData.companyName)}</strong>.</div><p><a class="back" style="margin-top:16px;background:#111;color:#fff;border-color:#111" href="${APP_URL}">ÜbergabeCheck Business öffnen →</a></p>`}catch(e){status("inviteStatus",e.message,"error");if(b){b.disabled=false;b.textContent="Einladung annehmen →"}}}
 async function inviteLogout(){await client.auth.signOut();await refreshInviteAuth()}
+
+async function revalidateTeamSession(){
+  if(inviteToken){await refreshInviteAuth();return;}
+  teamData=null;
+  only("loading");
+  const {data}=await client.auth.getSession();
+  if(!data?.session){only("loginView");return;}
+  await loadTeam();
+}
+
+client.auth.onAuthStateChange((_event,session)=>{
+  teamData=null;
+  if(inviteToken){
+    setTimeout(()=>refreshInviteAuth().catch(()=>{}),0);
+    return;
+  }
+  only("loading");
+  if(!session?.user){
+    only("loginView");
+    return;
+  }
+  setTimeout(()=>loadTeam().catch(()=>{}),0);
+});
+
+window.addEventListener("focus",()=>{
+  if(!inviteToken)revalidateTeamSession().catch(()=>{});
+});
+
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible" && !inviteToken)revalidateTeamSession().catch(()=>{});
+});
+
 (async()=>{if(inviteToken)await loadInvite();else await loadTeam()})();
 </script>
 </body>
