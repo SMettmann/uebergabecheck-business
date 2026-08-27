@@ -1,0 +1,40 @@
+name: Expose live role refresh
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/expose_role_refresh.py'
+      - '.github/workflows/expose-role-refresh.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch role refresh bridge
+        run: python tools/expose_role_refresh.py
+      - name: Build complete app.html
+        run: python tools/build_integrated_app.py
+      - name: Patch team session handling
+        run: |
+          if [ -f tools/patch_team_session.py ]; then python tools/patch_team_session.py; fi
+      - name: Validate
+        run: |
+          grep -q 'window.refreshBusinessRole=()=>loadCurrentBusinessRole(true)' tools/build_integrated_app.py
+          grep -q 'window.refreshBusinessRole=()=>loadCurrentBusinessRole(true)' app.html
+          grep -q 'TEAM_ACCESS_REMOVED' app.html
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tools/build_integrated_app.py app.html team.html
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+          else
+            git commit -m 'Refresh Business roles without reload'
+            git push
+          fi
