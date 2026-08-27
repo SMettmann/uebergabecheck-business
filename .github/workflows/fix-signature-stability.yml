@@ -1,0 +1,55 @@
+name: Fix signature stability
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/fix_signature_stability.py
+      - .github/workflows/fix-signature-stability.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fix signature canvas
+        run: python tools/fix_signature_stability.py
+
+      - name: Build complete app.html
+        run: python tools/build_integrated_app.py
+
+      - name: Patch team session handling
+        run: python tools/patch_team_session.py
+
+      - name: Validate signature stability
+        run: |
+          test -s index.html
+          test -s app.html
+          grep -q 'c.width=1120' index.html
+          grep -q 'c.height=360' index.html
+          grep -q 'ctx.setTransform(2,0,0,2,0,0)' index.html
+          grep -q 'ctx.setTransform(1,0,0,1,0,0)' index.html
+          grep -q 'c.width=1120' app.html
+          grep -q 'ctx.setTransform(1,0,0,1,0,0)' app.html
+          grep -q 'UEBERGABECHECK_ROLE_GUARDS_START' app.html
+          grep -q 'Erstellt von:' app.html
+
+      - name: Commit fixed source and app
+        run: |
+          if git diff --quiet -- index.html app.html team.html; then
+            echo "Signature fix already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html app.html team.html
+          git commit -m "Fix signature drift across repeated saves"
+          git push
