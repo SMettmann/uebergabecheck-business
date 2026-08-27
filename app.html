@@ -4171,6 +4171,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function isManager(role){return role==="owner" || role==="admin";}
 
+  window.refreshBusinessRole=()=>loadCurrentBusinessRole(true);
+
   function resetRoleState(){
     roleCache=null;
     rolePromise=null;

@@ -18,6 +18,8 @@ role_script = r'''
 
   function isManager(role){return role==="owner" || role==="admin";}
 
+  window.refreshBusinessRole=()=>loadCurrentBusinessRole(true);
+
   function resetRoleState(){
     roleCache=null;
     rolePromise=null;
