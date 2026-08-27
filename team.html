@@ -71,6 +71,12 @@ async function loadTeam(){
       location.replace(APP_URL);
       return;
     }
+    if(message.toLowerCase().includes("kein unternehmen")){
+      await client.auth.signOut();
+      only("loginView");
+      status("loginStatus","Dein Mitarbeiterzugang ist aktuell keinem Unternehmen mehr zugeordnet. Bitte wende dich an den Inhaber.","error");
+      return;
+    }
     only("loginView");
     status("loginStatus",message||"Teamverwaltung konnte nicht geladen werden.","error");
   }
