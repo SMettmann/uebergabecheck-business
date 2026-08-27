@@ -1,0 +1,53 @@
+name: Add transfer creator attribution
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/patch_transfer_creator.py
+      - .github/workflows/add-transfer-creator.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Patch creator attribution
+        run: python tools/patch_transfer_creator.py
+
+      - name: Build integrated app
+        run: python tools/build_integrated_app.py
+
+      - name: Patch team session handling
+        run: python tools/patch_team_session.py
+
+      - name: Validate
+        run: |
+          grep -q "UEBERGABECHECK_TRANSFER_CREATOR_V1" index.html
+          grep -q "UEBERGABECHECK_TRANSFER_CREATOR_V1" pdf-export.js
+          grep -q "created_by_name" index.html
+          grep -q "Erstellt von:" index.html
+          grep -q "Erstellt von:" pdf-export.js
+          grep -q "UEBERGABECHECK_ROLE_GUARDS_START" app.html
+          grep -q "created_by_name" app.html
+          grep -q "Erstellt von:" app.html
+
+      - name: Commit generated files
+        run: |
+          if git diff --quiet -- index.html app.html pdf-export.js team.html; then
+            echo "Files already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "4189826+github-actions[bot]@users.noreply.github.com"
+          git add index.html app.html pdf-export.js team.html
+          git commit -m "Show transfer creator in Business app and PDF"
+          git push
