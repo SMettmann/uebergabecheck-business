@@ -14,8 +14,8 @@ pattern = re.compile(
 )
 
 html, count = pattern.subn('', html, count=1)
-if count != 1:
-    raise SystemExit(f'Duplicate dashboard footer matches: {count}')
+if count > 1:
+    raise SystemExit(f'Unexpected duplicate dashboard footer matches: {count}')
 
 path.write_text(html, encoding='utf-8')
-print('Removed duplicate dashboard legal footer')
+print('Duplicate dashboard footer removed' if count else 'Duplicate dashboard footer already absent')
