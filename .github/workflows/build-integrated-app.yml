@@ -1,0 +1,44 @@
+name: Build integrated Business app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - tools/build_integrated_app.py
+      - .github/workflows/build-integrated-app.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build complete app.html
+        run: python tools/build_integrated_app.py
+
+      - name: Validate generated app
+        run: |
+          test -s app.html
+          grep -q "UEBERGABECHECK_ROLE_GUARDS_START" app.html
+          grep -q "Keine Berechtigung" app.html
+          grep -q "businessTeamButton" app.html
+
+      - name: Commit generated app
+        run: |
+          if git diff --quiet -- app.html && git ls-files --error-unmatch app.html >/dev/null 2>&1; then
+            echo "app.html already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.html
+          git commit -m "Build integrated Business app with team permissions"
+          git push
