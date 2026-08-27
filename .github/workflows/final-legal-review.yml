@@ -14,7 +14,9 @@ jobs:
         with:
           fetch-depth: 0
       - name: Apply final legal review
-        run: python scripts/final_legal_review_patch.py
+        run: |
+          sed -i '/nach Art\. 28 DSGVO · Stand: 26\. August 2026 · Version 2026-08-26/d' scripts/final_legal_review_patch.py
+          python scripts/final_legal_review_patch.py
       - name: Validate legal version and JavaScript
         run: |
           grep -q 'BUSINESS_TERMS_VERSION="2026-08-27"' index.html
