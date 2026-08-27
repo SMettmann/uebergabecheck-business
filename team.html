@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Team verwalten · ÜbergabeCheck Business</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f6f8;color:#17181b}.wrap{max-width:980px;margin:auto;padding:28px 18px 60px}.top{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:26px}.brand{font-size:21px;font-weight:850}.brand span{font-weight:500;color:#777}.back{display:inline-flex;align-items:center;text-decoration:none;color:#333;font-size:13px;font-weight:800;background:#fff;border:1px solid #ddd;border-radius:11px;padding:10px 13px}.hero{background:#111;color:#fff;border-radius:22px;padding:28px;margin-bottom:16px}.kicker{font-size:11px;font-weight:850;letter-spacing:1.4px;text-transform:uppercase;color:#aaa;margin-bottom:8px}.hero h1{margin:0 0 8px;font-size:32px;letter-spacing:-.8px}.hero p{margin:0;color:#c8c8c8;line-height:1.55}.card{background:#fff;border:1px solid #e2e3e6;border-radius:20px;padding:22px;margin-bottom:14px;box-shadow:0 4px 18px rgba(0,0,0,.03)}.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px}.head h2{font-size:21px;margin:0 0 5px}.muted{color:#777;font-size:13px;line-height:1.5}.pill{font-size:11px;font-weight:850;padding:7px 10px;border-radius:999px;background:#f0f1f3;white-space:nowrap}.pill.owner{background:#111;color:#fff}.pill.admin{background:#e9efff;color:#34528d}.pill.member{background:#edf5ef;color:#337044}.grid{display:grid;grid-template-columns:1fr 180px auto;gap:10px;align-items:end}label{display:block;font-size:12px;font-weight:800;margin:0 0 6px}input,select{width:100%;padding:12px 13px;border:1px solid #d8d9dd;border-radius:11px;background:#fff;font:inherit}button{border:0;border-radius:11px;padding:11px 14px;font:inherit;font-weight:800;cursor:pointer}.primary{background:#111;color:#fff}.secondary{background:#ececef;color:#222}.danger{background:#fff0f0;color:#a11}.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid #eee}.row:last-child{border-bottom:0}.person strong{display:block;font-size:14px;margin-bottom:3px}.person small{display:block;color:#777;font-size:12px}.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.actions select{width:auto;min-width:130px;padding:9px 10px}.actions button{padding:9px 11px;font-size:12px}.status{font-size:13px;margin-top:10px;min-height:20px}.status.ok{color:#18743a}.status.error{color:#a11}.hidden{display:none!important}.invite-box{max-width:620px;margin:40px auto}.auth-tabs{display:flex;gap:8px;margin:18px 0}.auth-tabs button.active{background:#111;color:#fff}.auth-form{display:none}.auth-form.active{display:block}.auth-form label{margin-top:13px}.auth-form button{width:100%;margin-top:16px}.invite-summary{background:#f5f6f8;border-radius:14px;padding:14px;margin:15px 0}.invite-summary strong{display:block;margin-bottom:4px}.empty{padding:18px;border:1px dashed #d4d5d9;border-radius:13px;text-align:center;color:#777;font-size:13px}.footer{text-align:center;color:#888;font-size:12px;margin-top:24px}.footer a{color:inherit}.limit-note{font-size:12px;color:#777;margin-top:8px}.member-count{font-size:13px;font-weight:800;color:#555}.notice{background:#fff8dd;border:1px solid #f0df9c;border-radius:13px;padding:12px 14px;font-size:13px;line-height:1.5;margin-bottom:14px}.success{background:#edf8f0;border:1px solid #c8e6cf;border-radius:13px;padding:14px;line-height:1.5}.errorbox{background:#fff0f0;border:1px solid #f1cccc;border-radius:13px;padding:14px;color:#8d1f1f;line-height:1.5}@media(max-width:720px){.grid{grid-template-columns:1fr}.top{align-items:flex-start}.head,.row{flex-direction:column;align-items:stretch}.actions{justify-content:flex-start}.actions select{flex:1}.hero h1{font-size:27px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="brand">Übergabe<span>Check</span> Business</div><a class="back" href="app.html">← Dashboard</a></div>
+
+  <section id="loadingView" class="card"><strong>Team wird geladen …</strong><div class="muted" style="margin-top:6px">Bitte einen Moment.</div></section>
+
+  <section id="inviteView" class="invite-box hidden">
+    <div class="hero"><div class="kicker">TEAM-EINLADUNG</div><h1 id="inviteTitle">Einladung zu ÜbergabeCheck Business</h1><p id="inviteLead">Einladung wird geprüft …</p></div>
+    <div class="card">
+      <div id="inviteInfo" class="invite-summary hidden"></div>
+      <div id="inviteSessionArea" class="hidden">
+        <div class="notice" id="signedInInviteText"></div>
+        <button class="primary" id="acceptInviteButton" type="button" onclick="acceptInvite()">Einladung annehmen →</button>
+        <button class="secondary" style="margin-left:8px" type="button" onclick="logoutInviteUser()">Anderes Konto verwenden</button>
+      </div>
+      <div id="inviteAuthArea" class="hidden">
+        <div class="auth-tabs"><button id="loginTab" class="secondary active" type="button" onclick="showInviteAuth('login')">Einloggen</button><button id="registerTab" class="secondary" type="button" onclick="showInviteAuth('register')">Zugang erstellen</button></div>
+        <form id="inviteLoginForm" class="auth-form active" onsubmit="inviteLogin(event)">
+          <label>E-Mail-Adresse</label><input id="inviteLoginEmail" type="email" autocomplete="email" readonly>
+          <label>Passwort</label><input id="inviteLoginPassword" type="password" autocomplete="current-password" required>
+          <button class="primary" type="submit">Einloggen & Einladung annehmen →</button>
+        </form>
+        <form id="inviteRegisterForm" class="auth-form" onsubmit="inviteRegister(event)">
+          <label>Vor- und Nachname</label><input id="inviteRegisterName" type="text" autocomplete="name" required placeholder="Max Mustermann">
+          <label>E-Mail-Adresse</label><input id="inviteRegisterEmail" type="email" autocomplete="email" readonly>
+          <label>Passwort</label><input id="inviteRegisterPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="Mindestens 8 Zeichen">
+          <label>Passwort wiederholen</label><input id="inviteRegisterRepeat" type="password" minlength="8" autocomplete="new-password" required>
+          <button class="primary" type="submit">Zugang erstellen →</button>
+        </form>
+      </div>
+      <div id="inviteStatus" class="status"></div>
+    </div>
+  </section>
+
+  <section id="teamView" class="hidden">
+    <div class="hero"><div class="kicker">FIRMENKONTO</div><h1>Team & Mitarbeiter</h1><p>Ein Unternehmenskonto, gemeinsame Objekte und Übergaben. Jeder Mitarbeiter arbeitet mit einem eigenen Login.</p></div>
+
+    <div class="card">
+      <div class="head"><div><h2 id="teamCompanyName">Unternehmen</h2><div class="muted">Bis zu 10 Mitarbeiter zusätzlich zum Inhaber sind im Business-Tarif enthalten.</div></div><div><div id="currentRolePill" class="pill">…</div><div id="memberCount" class="member-count" style="margin-top:8px;text-align:right"></div></div></div>
+      <div class="grid" id="inviteFormRow">
+        <div><label for="newMemberEmail">Mitarbeiter per E-Mail einladen</label><input id="newMemberEmail" type="email" placeholder="name@unternehmen.de"></div>
+        <div><label for="newMemberRole">Rolle</label><select id="newMemberRole"><option value="member">Mitarbeiter</option><option value="admin">Admin</option></select></div>
+        <button class="primary" id="sendInviteButton" type="button" onclick="sendInvite()">Einladen →</button>
+      </div>
+      <div class="limit-note">Mitarbeiter nutzen das bestehende Firmenabo. Es wird kein zusätzliches Stripe-Abo pro Person erstellt.</div>
+      <div id="teamStatus" class="status"></div>
+    </div>
+
+    <div class="card"><div class="head"><div><h2>Aktive Teammitglieder</h2><div class="muted">Owner verwaltet Abrechnung. Admins können Mitarbeiter verwalten. Mitarbeiter arbeiten mit Objekten und Übergaben.</div></div></div><div id="membersList"><div class="empty">Wird geladen …</div></div></div>
+    <div class="card"><div class="head"><div><h2>Offene Einladungen</h2><div class="muted">Einladungen sind 7 Tage gültig und reservieren einen Mitarbeiterplatz.</div></div></div><div id="invitationsList"><div class="empty">Wird geladen …</div></div></div>
+  </section>
+
+  <div class="footer">ÜbergabeCheck Business · <a href="app.html#impressum">Impressum</a> · <a href="app.html#datenschutz">Datenschutz</a> · <a href="app.html#agb">AGB</a> · <a href="app.html#avv">AVV</a></div>
+</div>
+<script>
+const SUPABASE_URL="https://fkirkglhcpltxlcsozmd.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_lNeX7Hrtp9-FFl3NVb_Gaw_O-21yXWr";
+const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+const params=new URLSearchParams(location.search);
+const inviteToken=params.get("invite")||"";
+let inviteInfo=null;
+let currentUser=null;
+let teamData=null;
+
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function roleLabel(role){return role==="owner"?"Inhaber":role==="admin"?"Admin":"Mitarbeiter";}
+function roleClass(role){return role==="owner"?"owner":role==="admin"?"admin":"member";}
+function setStatus(id,text,type=""){const el=document.getElementById(id);if(!el)return;el.textContent=text||"";el.className="status"+(type?" "+type:"");}
+function showOnly(id){["loadingView","inviteView","teamView"].forEach(x=>document.getElementById(x)?.classList.toggle("hidden",x!==id));}
+
+async function functionInvoke(name,body){
+  const {data,error}=await client.functions.invoke(name,{body});
+  if(error){
+    let message=error.message||"Anfrage fehlgeschlagen";
+    try{const context=await error.context?.json?.();if(context?.error)message=context.error;}catch(_){ }
+    throw new Error(data?.error||message);
+  }
+  if(data?.error)throw new Error(data.error);
+  return data;
+}
+
+async function loadInvite(){
+  showOnly("inviteView");
+  try{
+    const data=await functionInvoke("team-invite-info",{token:inviteToken});
+    inviteInfo=data.invitation;
+    const role=roleLabel(inviteInfo.role);
+    document.getElementById("inviteTitle").textContent=`Einladung zu ${inviteInfo.companyName}`;
+    document.getElementById("inviteLead").textContent=`Du wurdest als ${role} zu diesem Unternehmenskonto eingeladen.`;
+    const info=document.getElementById("inviteInfo");
+    info.innerHTML=`<strong>${esc(inviteInfo.companyName)}</strong><span>${esc(role)} · ${esc(inviteInfo.email)}</span>`;
+    info.classList.remove("hidden");
+    document.getElementById("inviteLoginEmail").value=inviteInfo.email;
+    document.getElementById("inviteRegisterEmail").value=inviteInfo.email;
+    await refreshInviteSession();
+  }catch(error){
+    document.getElementById("inviteLead").textContent="Diese Einladung kann nicht verwendet werden.";
+    document.getElementById("inviteAuthArea").classList.add("hidden");
+    document.getElementById("inviteSessionArea").classList.add("hidden");
+    setStatus("inviteStatus",error.message,"error");
+  }
+}
+
+async function refreshInviteSession(){
+  const {data}=await client.auth.getSession();
+  currentUser=data?.session?.user||null;
+  const sessionArea=document.getElementById("inviteSessionArea");
+  const authArea=document.getElementById("inviteAuthArea");
+  if(currentUser){
+    sessionArea.classList.remove("hidden");authArea.classList.add("hidden");
+    document.getElementById("signedInInviteText").textContent=`Angemeldet als ${currentUser.email}. Die Einladung ist für ${inviteInfo?.email||"diese E-Mail-Adresse"}.`;
+  }else{
+    sessionArea.classList.add("hidden");authArea.classList.remove("hidden");
+  }
+}
+
+function showInviteAuth(mode){
+  document.getElementById("inviteLoginForm").classList.toggle("active",mode==="login");
+  document.getElementById("inviteRegisterForm").classList.toggle("active",mode==="register");
+  document.getElementById("loginTab").classList.toggle("active",mode==="login");
+  document.getElementById("registerTab").classList.toggle("active",mode==="register");
+  setStatus("inviteStatus","");
+}
+
+async function inviteLogin(event){
+  event.preventDefault();setStatus("inviteStatus","Wird angemeldet …");
+  const email=document.getElementById("inviteLoginEmail").value.trim();
+  const password=document.getElementById("inviteLoginPassword").value;
+  const {data,error}=await client.auth.signInWithPassword({email,password});
+  if(error){setStatus("inviteStatus","Anmeldung fehlgeschlagen. Bitte E-Mail und Passwort prüfen.","error");return;}
+  currentUser=data.user;await refreshInviteSession();await acceptInvite();
+}
+
+async function inviteRegister(event){
+  event.preventDefault();
+  const name=document.getElementById("inviteRegisterName").value.trim();
+  const email=document.getElementById("inviteRegisterEmail").value.trim();
+  const password=document.getElementById("inviteRegisterPassword").value;
+  const repeat=document.getElementById("inviteRegisterRepeat").value;
+  if(!name){setStatus("inviteStatus","Bitte Vor- und Nachname eingeben.","error");return;}
+  if(password.length<8){setStatus("inviteStatus","Das Passwort muss mindestens 8 Zeichen lang sein.","error");return;}
+  if(password!==repeat){setStatus("inviteStatus","Die Passwörter stimmen nicht überein.","error");return;}
+  setStatus("inviteStatus","Zugang wird erstellt …");
+  const redirectTo=`${location.origin}/business/team.html?invite=${encodeURIComponent(inviteToken)}`;
+  const {data,error}=await client.auth.signUp({email,password,options:{emailRedirectTo:redirectTo,data:{full_name:name,contact_name:name,account_type:"business_member"}}});
+  if(error){setStatus("inviteStatus",error.message||"Registrierung fehlgeschlagen.","error");return;}
+  if(data?.session){currentUser=data.user;await refreshInviteSession();await acceptInvite();}
+  else setStatus("inviteStatus","Zugang erstellt. Bitte bestätige deine E-Mail-Adresse und öffne danach den Einladungslink erneut.","ok");
+}
+
+async function acceptInvite(){
+  const button=document.getElementById("acceptInviteButton");if(button){button.disabled=true;button.textContent="Wird angenommen …";}
+  try{
+    const data=await functionInvoke("accept-team-invite",{token:inviteToken});
+    document.querySelector("#inviteView .card").innerHTML=`<div class="success"><strong>Einladung angenommen.</strong><br>Du gehörst jetzt zu <strong>${esc(data.companyName||inviteInfo?.companyName||"dem Unternehmen")}</strong> als ${esc(roleLabel(data.role||inviteInfo?.role))}.</div><p><a class="back" style="margin-top:16px;background:#111;color:#fff;border-color:#111" href="app.html">ÜbergabeCheck Business öffnen →</a></p>`;
+  }catch(error){setStatus("inviteStatus",error.message,"error");if(button){button.disabled=false;button.textContent="Einladung annehmen →";}}
+}
+
+async function logoutInviteUser(){await client.auth.signOut();currentUser=null;await refreshInviteSession();}
+
+async function loadTeam(){
+  try{
+    const {data}=await client.auth.getSession();currentUser=data?.session?.user||null;
+    if(!currentUser){location.href="app.html";return;}
+    teamData=await functionInvoke("manage-team",{action:"list"});
+    showOnly("teamView");renderTeam();
+  }catch(error){
+    showOnly("teamView");
+    document.getElementById("teamView").innerHTML=`<div class="hero"><div class="kicker">TEAM</div><h1>Keine Teamverwaltung verfügbar</h1><p>${esc(error.message)}</p></div><div class="card"><a class="back" href="app.html">← Zum Dashboard</a></div>`;
+  }
+}
+
+function renderTeam(){
+  document.getElementById("teamCompanyName").textContent=teamData.company?.name||"Unternehmen";
+  const rolePill=document.getElementById("currentRolePill");rolePill.textContent=roleLabel(teamData.currentRole);rolePill.className=`pill ${roleClass(teamData.currentRole)}`;
+  document.getElementById("memberCount").textContent=`${teamData.usedMembers}/${teamData.limit} Mitarbeiterplätze`;
+  if(teamData.currentRole==="admin"){
+    document.querySelector('#newMemberRole option[value="admin"]')?.remove();
+  }
+  const full=teamData.availableSlots<=0;
+  document.getElementById("newMemberEmail").disabled=full;document.getElementById("newMemberRole").disabled=full;document.getElementById("sendInviteButton").disabled=full;
+  if(full)setStatus("teamStatus","Alle 10 Mitarbeiterplätze sind belegt oder durch offene Einladungen reserviert.");
+
+  const members=document.getElementById("membersList");
+  members.innerHTML=(teamData.members||[]).map(m=>{
+    const canEdit=teamData.currentRole==="owner" && m.role!=="owner";
+    const canRemove=m.role!=="owner" && (teamData.currentRole==="owner" || (teamData.currentRole==="admin" && m.role==="member"));
+    return `<div class="row"><div class="person"><strong>${esc(m.display_name||m.email||"Teammitglied")}</strong><small>${esc(m.email||"")}</small></div><div class="actions"><span class="pill ${roleClass(m.role)}">${roleLabel(m.role)}</span>${canEdit?`<select onchange="changeRole('${esc(m.user_id)}',this.value)"><option value="member" ${m.role==="member"?"selected":""}>Mitarbeiter</option><option value="admin" ${m.role==="admin"?"selected":""}>Admin</option></select>`:""}${canRemove?`<button class="danger" type="button" onclick="removeMember('${esc(m.user_id)}','${esc(m.display_name||m.email||"Teammitglied")}')">Entfernen</button>`:""}</div></div>`;
+  }).join("")||'<div class="empty">Keine Teammitglieder vorhanden.</div>';
+
+  const invitations=document.getElementById("invitationsList");
+  invitations.innerHTML=(teamData.invitations||[]).map(i=>{
+    const date=new Date(i.expires_at).toLocaleDateString("de-DE");
+    return `<div class="row"><div class="person"><strong>${esc(i.email)}</strong><small>${esc(roleLabel(i.role))} · gültig bis ${esc(date)}</small></div><div class="actions"><button class="secondary" type="button" onclick="resendInvite('${esc(i.email)}','${esc(i.role)}')">Erneut senden</button><button class="danger" type="button" onclick="revokeInvite('${esc(i.id)}')">Zurückziehen</button></div></div>`;
+  }).join("")||'<div class="empty">Keine offenen Einladungen.</div>';
+}
+
+async function reloadTeam(){teamData=await functionInvoke("manage-team",{action:"list"});renderTeam();}
+
+async function sendInvite(emailOverride="",roleOverride=""){
+  const email=(emailOverride||document.getElementById("newMemberEmail").value).trim();
+  const role=roleOverride||document.getElementById("newMemberRole").value;
+  if(!email){setStatus("teamStatus","Bitte eine E-Mail-Adresse eingeben.","error");return;}
+  const button=document.getElementById("sendInviteButton");if(button){button.disabled=true;button.textContent="Wird gesendet …";}
+  try{await functionInvoke("manage-team",{action:"invite",email,role});document.getElementById("newMemberEmail").value="";setStatus("teamStatus",`Einladung an ${email} wurde versendet.`,"ok");await reloadTeam();}
+  catch(error){setStatus("teamStatus",error.message,"error");}
+  finally{if(button){button.disabled=false;button.textContent="Einladen →";}}
+}
+async function resendInvite(email,role){if(!confirm(`Einladung an ${email} erneut senden?`))return;await sendInvite(email,role);}
+async function revokeInvite(id){if(!confirm("Diese Einladung zurückziehen?"))return;try{await functionInvoke("manage-team",{action:"revoke",invitationId:id});await reloadTeam();}catch(error){setStatus("teamStatus",error.message,"error");}}
+async function changeRole(userId,role){try{await functionInvoke("manage-team",{action:"set_role",userId,role});setStatus("teamStatus","Rolle aktualisiert.","ok");await reloadTeam();}catch(error){setStatus("teamStatus",error.message,"error");await reloadTeam();}}
+async function removeMember(userId,name){if(!confirm(`${name} wirklich aus dem Unternehmen entfernen? Der Login bleibt bestehen, hat danach aber keinen Zugriff mehr auf die Firmendaten.`))return;try{await functionInvoke("manage-team",{action:"remove",userId});setStatus("teamStatus",`${name} wurde aus dem Team entfernt.`,"ok");await reloadTeam();}catch(error){setStatus("teamStatus",error.message,"error");}}
+
+(async()=>{if(inviteToken)await loadInvite();else await loadTeam();})();
+</script>
+</body>
+</html>
