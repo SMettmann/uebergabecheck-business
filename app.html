@@ -2071,6 +2071,30 @@ async function loadBusinessLegalAcceptance(companyId){
   return businessLegalAcceptance;
 }
 
+let businessLegalOwnerNoticeShown=false;
+
+async function handleMissingBusinessLegalAcceptance(user){
+  if(hasCurrentBusinessLegalAcceptance())return;
+  try{
+    const currentUser=user||supabaseUser;
+    if(!currentUser||!supabaseClient){openBusinessLegalGate();return;}
+    const {data,error}=await supabaseClient.from("company_members").select("role").eq("user_id",currentUser.id).maybeSingle();
+    if(error)throw error;
+    if(data?.role==="owner"){
+      openBusinessLegalGate();
+      return;
+    }
+    closeBusinessLegalGate();
+    if(!businessLegalOwnerNoticeShown){
+      businessLegalOwnerNoticeShown=true;
+      alert("Die aktuellen AGB und der AVV müssen zuerst vom Inhaber des Unternehmenskontos bestätigt werden. Bis dahin ist die Bearbeitung vorübergehend gesperrt.");
+    }
+  }catch(error){
+    console.error("Rechtliche Rollenprüfung:",error);
+    openBusinessLegalGate();
+  }
+}
+
 function openBusinessLegalGate(){
   if(hasCurrentBusinessLegalAcceptance())return;
   document.getElementById("businessLegalGate")?.classList.remove("hidden");
@@ -2136,7 +2160,15 @@ function businessHasWriteAccess(){
 }
 
 function requireBusinessWriteAccess(){
-  if(!hasCurrentBusinessLegalAcceptance()){openBusinessLegalGate();return false;}
+  if(!hasCurrentBusinessLegalAcceptance()){
+    const role=window.businessCurrentRole||"";
+    if(role==="admin"||role==="member"){
+      alert("Die aktuellen AGB und der AVV müssen zuerst vom Inhaber des Unternehmenskontos bestätigt werden.");
+    }else{
+      openBusinessLegalGate();
+    }
+    return false;
+  }
   if(businessHasWriteAccess())return true;
   const state=getBusinessAccessState();
   if(state.effectiveStatus==="loading") alert("Der Tarifstatus wird noch geladen. Bitte versuche es gleich noch einmal.");
@@ -2280,7 +2312,7 @@ async function loadBusinessSubscription(companyId){
 async function loadBusinessData(user){
   if(!user||!supabaseClient) return;
   if(businessDataLoadedForUser===user.id){
-    if(businessCompanyId){await loadBusinessSubscription(businessCompanyId);await loadBusinessLegalAcceptance(businessCompanyId);if(!hasCurrentBusinessLegalAcceptance())await maybePersistRegistrationLegalAcceptance(user);refreshBusinessSubscriptionUI();if(!hasCurrentBusinessLegalAcceptance())setTimeout(openBusinessLegalGate,0);}
+    if(businessCompanyId){await loadBusinessSubscription(businessCompanyId);await loadBusinessLegalAcceptance(businessCompanyId);if(!hasCurrentBusinessLegalAcceptance())await maybePersistRegistrationLegalAcceptance(user);refreshBusinessSubscriptionUI();if(!hasCurrentBusinessLegalAcceptance())setTimeout(()=>handleMissingBusinessLegalAcceptance(user),0);}
     renderBusinessObjects();updateBusinessStats();return;
   }
   if(businessDataLoading) return;
@@ -2292,7 +2324,7 @@ async function loadBusinessData(user){
     await loadBusinessLegalAcceptance(companyId);
     if(!hasCurrentBusinessLegalAcceptance())await maybePersistRegistrationLegalAcceptance(user);
     refreshBusinessSubscriptionUI();
-    if(!hasCurrentBusinessLegalAcceptance())setTimeout(openBusinessLegalGate,0);
+    if(!hasCurrentBusinessLegalAcceptance())setTimeout(()=>handleMissingBusinessLegalAcceptance(user),0);
     handleStripeCheckoutReturn();
     const {data:objects,error:objectError}=await supabaseClient.from("objects").select("id,company_id,name,street,zip,city,note,created_at").eq("company_id",companyId).order("created_at",{ascending:true});
     if(objectError) throw objectError;
