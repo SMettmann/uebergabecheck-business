@@ -1,0 +1,43 @@
+name: Remove duplicate dashboard footer
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/remove_duplicate_dashboard_footer.py'
+      - '.github/workflows/remove-duplicate-dashboard-footer.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove duplicate footer
+        run: python tools/remove_duplicate_dashboard_footer.py
+      - name: Build complete app.html
+        run: python tools/build_integrated_app.py
+      - name: Validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('app.html').read_text(encoding='utf-8')
+          duplicate='ÜbergabeCheck · <a onclick="openImpressum()">Impressum</a> · <a onclick="openDatenschutz()">Datenschutz</a>'
+          assert duplicate not in s
+          assert 'Rechtliches:' in s
+          assert 'openAGB()' in s and 'openAVV()' in s and 'openDatenschutz()' in s and 'openImpressum()' in s
+          print('Footer validation passed')
+          PY
+      - name: Commit cleaned app
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html app.html
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Remove duplicate legal footer from Business dashboard"
+            git push
+          fi
