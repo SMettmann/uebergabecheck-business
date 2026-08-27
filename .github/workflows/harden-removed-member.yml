@@ -1,0 +1,41 @@
+name: Harden removed member access
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/harden_removed_member_access.py'
+      - '.github/workflows/harden-removed-member.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Harden removed member access
+        run: python tools/harden_removed_member_access.py
+      - name: Build complete app.html
+        run: python tools/build_integrated_app.py
+      - name: Patch team session handling
+        run: |
+          if [ -f tools/patch_team_session.py ]; then python tools/patch_team_session.py; fi
+      - name: Validate hardening
+        run: |
+          grep -q 'TEAM_ACCESS_REMOVED' index.html
+          grep -q 'TEAM_ACCESS_REMOVED' app.html
+          grep -q 'keinem Unternehmen mehr zugeordnet' app.html
+          grep -q 'keinem Unternehmen mehr zugeordnet' team.html
+      - name: Commit hardened app
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html app.html team.html
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+          else
+            git commit -m 'Harden removed team member access'
+            git push
+          fi
