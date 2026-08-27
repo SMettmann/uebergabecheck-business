@@ -1,0 +1,38 @@
+name: Add contact link to Business legal notices
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/contact-link-trigger.txt'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply contact legal patch
+        run: python scripts/add_contact_link_privacy.py
+      - name: Validate Business legal links
+        run: |
+          grep -q '/business/#kontakt' index.html
+          grep -q '<h3>11. Kontaktformular</h3>' index.html
+          grep -q 'BUSINESS_TERMS_VERSION="2026-08-27"' index.html
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text(encoding='utf-8')
+          start=s.rfind('<script>'); end=s.rfind('</script>')
+          if start < 0 or end < start: raise SystemExit('script block not found')
+          Path('/tmp/app.js').write_text(s[start+8:end],encoding='utf-8')
+          PY
+          node --check /tmp/app.js
+      - name: Commit legal contact update
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -f .github/contact-link-trigger.txt .github/workflows/add-contact-link-privacy.yml scripts/add_contact_link_privacy.py
+          git add index.html
+          git commit -m 'Add contact form link to legal notices'
+          git push origin main
