@@ -1,0 +1,44 @@
+name: Remove duplicate Business footer
+
+on:
+  push:
+    paths:
+      - 'tools/remove_duplicate_business_footer.py'
+      - '.github/workflows/remove-duplicate-business-footer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove duplicate footer
+        run: python tools/remove_duplicate_business_footer.py
+      - name: Build complete app.html
+        run: python tools/build_integrated_app.py
+      - name: Patch team session handling
+        run: |
+          if [ -f tools/patch_team_session.py ]; then python tools/patch_team_session.py; fi
+      - name: Validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          src=Path('index.html').read_text(encoding='utf-8')
+          app=Path('app.html').read_text(encoding='utf-8')
+          duplicate='ÜbergabeCheck · <a onclick="openImpressum()">Impressum</a> · <a onclick="openDatenschutz()">Datenschutz</a>'
+          assert duplicate not in src
+          assert duplicate not in app
+          assert 'dashboard-legal-links' in app
+          assert 'openAGB()' in app and 'openAVV()' in app and 'openDatenschutz()' in app and 'openImpressum()' in app
+          print('Validation passed')
+          PY
+      - name: Commit cleaned app
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html app.html
+          git diff --cached --quiet || git commit -m "Remove duplicate Business legal footer"
+          git push
