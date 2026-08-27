@@ -18,30 +18,72 @@ role_script = r'''
 
   function isManager(role){return role==="owner" || role==="admin";}
 
-  async function loadCurrentBusinessRole(force=false){
-    if(!force && roleCache)return roleCache;
-    if(!force && rolePromise)return rolePromise;
+  function resetRoleState(){
+    roleCache=null;
+    rolePromise=null;
+    syncRoleUI(null);
+  }
+
+  async function loadCurrentBusinessRole(force=false,userOverride=null){
+    if(force){
+      roleCache=null;
+      rolePromise=null;
+    }else{
+      if(roleCache)return roleCache;
+      if(rolePromise)return rolePromise;
+    }
+
     rolePromise=(async()=>{
       try{
         if(typeof initSupabase==="function")initSupabase();
         if(typeof supabaseClient==="undefined" || !supabaseClient)return null;
-        let user=(typeof supabaseUser!=="undefined" ? supabaseUser : null);
+
+        let user=userOverride||null;
         if(!user){
           const {data}=await supabaseClient.auth.getSession();
           user=data?.session?.user||null;
         }
-        if(!user){roleCache=null;syncRoleUI(null);return null;}
-        const {data,error}=await supabaseClient.from("company_members").select("role").eq("user_id",user.id).maybeSingle();
-        if(error){console.error("Rollenprüfung:",error);return null;}
+
+        if(!user){
+          roleCache=null;
+          syncRoleUI(null);
+          return null;
+        }
+
+        const requestedUserId=user.id;
+        const {data,error}=await supabaseClient
+          .from("company_members")
+          .select("role")
+          .eq("user_id",requestedUserId)
+          .maybeSingle();
+
+        if(error){
+          console.error("Rollenprüfung:",error);
+          syncRoleUI(null);
+          return null;
+        }
+
+        const {data:sessionData}=await supabaseClient.auth.getSession();
+        const activeUser=sessionData?.session?.user||null;
+        if(!activeUser || activeUser.id!==requestedUserId){
+          roleCache=null;
+          syncRoleUI(null);
+          return null;
+        }
+
         roleCache=data?.role||null;
         window.businessCurrentRole=roleCache;
         syncRoleUI(roleCache);
         return roleCache;
       }catch(error){
         console.error("Rollenprüfung:",error);
+        syncRoleUI(null);
         return null;
-      }finally{rolePromise=null;}
+      }finally{
+        rolePromise=null;
+      }
     })();
+
     return rolePromise;
   }
 
@@ -68,7 +110,12 @@ role_script = r'''
     companyButton?.classList.toggle("hidden",role!=="owner");
 
     const subscriptionAction=document.getElementById("businessSubscriptionAction");
-    if(subscriptionAction && role!=="owner")subscriptionAction.classList.add("hidden");
+    if(subscriptionAction){
+      if(role!=="owner") subscriptionAction.classList.add("hidden");
+      else if(typeof refreshBusinessSubscriptionUI==="function" && businessSubscription) {
+        // The normal subscription renderer decides whether the owner action is visible.
+      }
+    }
   }
 
   async function requireManager(message){
@@ -130,21 +177,50 @@ role_script = r'''
       wrappedRefresh.__roleGuarded=true;
       window.refreshBusinessSubscriptionUI=wrappedRefresh;
     }
+
+    const originalShowDashboard=window.showBusinessDashboard;
+    if(typeof originalShowDashboard==="function" && !originalShowDashboard.__roleSessionGuarded){
+      const wrappedShowDashboard=function(...args){
+        resetRoleState();
+        const result=originalShowDashboard.apply(this,args);
+        const user=args[0]||null;
+        setTimeout(()=>loadCurrentBusinessRole(true,user).catch(()=>{}),0);
+        return result;
+      };
+      wrappedShowDashboard.__roleSessionGuarded=true;
+      window.showBusinessDashboard=wrappedShowDashboard;
+    }
+
+    const originalLogout=window.businessLogout;
+    if(typeof originalLogout==="function" && !originalLogout.__roleSessionGuarded){
+      const wrappedLogout=async function(...args){
+        resetRoleState();
+        return originalLogout.apply(this,args);
+      };
+      wrappedLogout.__roleSessionGuarded=true;
+      window.businessLogout=wrappedLogout;
+    }
   }
 
   function initRoleGuards(){
     installGuards();
+    resetRoleState();
     loadCurrentBusinessRole(true).catch(()=>{});
+
     try{
       if(typeof initSupabase==="function")initSupabase();
       if(typeof supabaseClient!=="undefined" && supabaseClient?.auth){
         supabaseClient.auth.onAuthStateChange((_event,session)=>{
-          roleCache=null;
-          if(!session?.user){syncRoleUI(null);return;}
-          setTimeout(()=>loadCurrentBusinessRole(true).catch(()=>{}),0);
+          resetRoleState();
+          if(!session?.user)return;
+          if(typeof supabaseUser!=="undefined")supabaseUser=session.user;
+          setTimeout(()=>loadCurrentBusinessRole(true,session.user).catch(()=>{}),0);
         });
       }
-    }catch(error){console.error("Rollen-UI:",error);}
+    }catch(error){
+      console.error("Rollen-UI:",error);
+      resetRoleState();
+    }
   }
 
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initRoleGuards,{once:true});
