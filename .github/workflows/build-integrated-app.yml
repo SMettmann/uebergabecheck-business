@@ -56,3 +56,5 @@ jobs:
           git add app.html team.html
           git commit -m "Build Business app with owner legal gate"
           git push
+
+# Desktop dashboard rebuild trigger: 2026-08-28
