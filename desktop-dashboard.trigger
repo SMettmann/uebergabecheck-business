@@ -1,1 +1,1 @@
-apply desktop dashboard redesign v1
+apply desktop dashboard redesign v2
