@@ -464,3 +464,145 @@
 })();
 
 // UEBERGABECHECK_TRANSFER_CREATOR_V1
+
+(function(){
+  "use strict";
+
+  const STYLE_ID="uc-business-desktop-v2-style";
+  const WORKSPACE_ID="ucDesktopWorkspace";
+
+  function installDesktopStyle(){
+    if(document.getElementById(STYLE_ID))return;
+    const style=document.createElement("style");
+    style.id=STYLE_ID;
+    style.textContent=`
+      @media (min-width:901px){
+        body.uc-dashboard-mode{background:#f3f4f6}
+        body.uc-dashboard-mode .app{max-width:1280px;padding:24px 28px 72px}
+        #businessDashboard{padding:8px 0 54px}
+        #businessDashboard .dashboard-top{align-items:center;gap:24px;margin-bottom:14px;padding:0 2px}
+        #businessDashboard .dashboard-top>div:first-child{min-width:260px}
+        #businessDashboard .dashboard-kicker{font-size:11px;letter-spacing:1.7px;margin-bottom:5px;color:#73757c}
+        #businessDashboard .dashboard-top h1{font-size:30px;line-height:1.05;letter-spacing:-1.15px;margin:0 0 6px}
+        #businessDashboard .dashboard-top p{font-size:13px;color:#73757c}
+        #businessDashboard .dashboard-actions{justify-content:flex-end;align-items:center;gap:8px}
+        #businessDashboard .dashboard-actions button{padding:10px 13px;border:1px solid #e1e2e5;background:#fff;color:#222;border-radius:11px;box-shadow:0 1px 2px rgba(0,0,0,.025);transition:transform .15s ease,border-color .15s ease,background .15s ease}
+        #businessDashboard .dashboard-actions button:hover{transform:translateY(-1px);border-color:#cfd0d4;background:#fafafa}
+        #businessDashboard .dashboard-actions .primary{order:-1;background:#111;color:#fff;border-color:#111;box-shadow:0 6px 16px rgba(0,0,0,.10)}
+        #businessDashboard .dashboard-actions .primary:hover{background:#242424;border-color:#242424}
+        #businessDashboard .uc-duplicate-dashboard-button{display:none!important}
+
+        #businessDashboard .subscription-notice{padding:11px 14px;margin-bottom:10px;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.025)}
+        #businessDashboard .subscription-notice strong{font-size:13px;margin-bottom:2px}
+        #businessDashboard .subscription-notice span{font-size:11.5px}
+        #businessDashboard .subscription-status-pill{padding:6px 9px;font-size:10px}
+        #businessDashboard .subscription-action{padding:8px 11px;font-size:11px}
+        #businessDashboard .dashboard-legal-links{font-size:10.5px;margin:-1px 3px 13px;color:#8a8c92}
+        #businessDashboard .dashboard-legal-links a{color:#686a70;margin-left:8px}
+
+        #businessDashboard .dashboard-nav{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #e1e2e5;border-radius:15px;padding:5px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.025)}
+        #businessDashboard .dashboard-nav button{background:transparent;color:#4f5157;padding:9px 14px;border-radius:10px;font-size:12.5px;transition:background .15s ease,color .15s ease}
+        #businessDashboard .dashboard-nav button:hover{background:#f1f2f4;color:#111}
+        #businessDashboard .dashboard-nav button.active{background:#111;color:#fff;box-shadow:0 3px 9px rgba(0,0,0,.12)}
+
+        #businessDashboard .dashboard-grid{gap:10px;margin-bottom:14px}
+        #businessDashboard .dashboard-stat{min-height:86px;padding:14px 16px;border-radius:16px;box-shadow:0 2px 9px rgba(0,0,0,.025);transition:transform .15s ease,border-color .15s ease}
+        #businessDashboard .dashboard-stat:hover{transform:translateY(-1px);border-color:#d5d6d9}
+        #businessDashboard .dashboard-stat span{font-size:11px;margin-bottom:7px;color:#7b7d83}
+        #businessDashboard .dashboard-stat strong{font-size:26px;letter-spacing:-.8px}
+        #businessDashboard .dashboard-stat:nth-child(4){background:#fffafa;border-color:#efdede}
+        #businessDashboard .dashboard-stat:nth-child(4) strong{color:#9b3030}
+
+        #businessSearchCard{display:grid;grid-template-columns:190px minmax(0,1fr);column-gap:16px;row-gap:0;align-items:center;padding:16px 18px;margin-bottom:16px;border-radius:18px;box-shadow:0 2px 9px rgba(0,0,0,.025)}
+        #businessSearchCard .dashboard-card-head{margin:0}
+        #businessSearchCard .dashboard-card-head h2{font-size:17px;margin-bottom:2px}
+        #businessSearchCard .dashboard-card-head small{font-size:11.5px!important}
+        #businessSearchCard>div:nth-of-type(2){flex-wrap:nowrap!important;align-items:center}
+        #businessSearchCard input,#businessSearchCard select{padding:11px 12px;border-radius:11px;background:#fff}
+        #businessSearchCard select{flex:0 0 170px;width:170px;min-width:170px!important}
+        #businessSearchResults{grid-column:1/-1;margin-top:10px!important}
+        #businessSearchResults .empty-state{padding:12px 16px;border-radius:12px}
+
+        .uc-desktop-workspace{display:grid;grid-template-columns:minmax(0,2fr) minmax(295px,.8fr);gap:16px;align-items:start}
+        .uc-desktop-workspace #objectsCard{margin-bottom:0!important;min-width:0}
+        .uc-desktop-workspace .dashboard-main{grid-template-columns:1fr;gap:16px;min-width:0}
+        .uc-desktop-workspace:has(.dashboard-main.hidden){grid-template-columns:1fr}
+        .uc-desktop-workspace:has(.dashboard-main.hidden) #objectsCard:not(.hidden){grid-column:1/-1}
+        #objectsCard,.dashboard-main .dashboard-card{box-shadow:0 2px 10px rgba(0,0,0,.028);border-radius:18px}
+        #objectsCard .dashboard-card-head,.dashboard-main .dashboard-card-head{margin-bottom:13px}
+        #objectsCard .dashboard-card-head h2,.dashboard-main .dashboard-card-head h2{font-size:18px}
+        #objectsCard .dashboard-list-item{padding:13px 15px;border-radius:12px;background:#fff;transition:background .15s ease,border-color .15s ease,transform .15s ease}
+        #objectsCard .dashboard-list-item:hover{background:#fafafa;border-color:#d9dade;transform:translateY(-1px)}
+        .dashboard-main .dashboard-card{padding:18px}
+        .dashboard-main .dashboard-list{gap:8px}
+        .dashboard-main .dashboard-list-item{padding:13px;background:#fafafa;border-radius:12px;transition:background .15s ease,border-color .15s ease,transform .15s ease}
+        .dashboard-main .dashboard-list-item:hover{background:#f1f2f4;border-color:#d8d9dc;transform:translateY(-1px)}
+        .dashboard-main .dashboard-list-item span:last-child{font-size:17px;color:#666}
+
+        #businessDashboard .dashboard-card,#businessDashboard .object-detail{border-color:#e1e2e5}
+        #businessDashboard button{transition:background .15s ease,border-color .15s ease,transform .15s ease}
+      }
+      @media (max-width:900px){
+        .uc-desktop-workspace{display:contents}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensureWorkspace(){
+    const dashboard=document.getElementById("businessDashboard");
+    const objects=document.getElementById("objectsCard");
+    const main=dashboard?.querySelector(".dashboard-main");
+    if(!dashboard||!objects||!main)return;
+    if(document.getElementById(WORKSPACE_ID))return;
+
+    const workspace=document.createElement("div");
+    workspace.id=WORKSPACE_ID;
+    workspace.className="uc-desktop-workspace";
+    objects.parentNode.insertBefore(workspace,objects);
+    workspace.appendChild(objects);
+    workspace.appendChild(main);
+  }
+
+  function markDuplicateDashboardAction(){
+    const actions=document.querySelector("#businessDashboard .dashboard-top .dashboard-actions");
+    if(!actions)return;
+    [...actions.querySelectorAll("button")].forEach(button=>{
+      const action=String(button.getAttribute("onclick")||"");
+      button.classList.toggle("uc-duplicate-dashboard-button",action.includes("goBusinessHome"));
+    });
+  }
+
+  function syncDashboardMode(){
+    const dashboard=document.getElementById("businessDashboard");
+    if(!dashboard)return;
+    document.body.classList.toggle("uc-dashboard-mode",!dashboard.classList.contains("hidden"));
+  }
+
+  function enhanceDesktopDashboard(){
+    installDesktopStyle();
+    ensureWorkspace();
+    markDuplicateDashboardAction();
+    syncDashboardMode();
+  }
+
+  function watchDashboard(){
+    const dashboard=document.getElementById("businessDashboard");
+    if(!dashboard)return;
+    const observer=new MutationObserver(()=>{
+      markDuplicateDashboardAction();
+      syncDashboardMode();
+    });
+    observer.observe(dashboard,{attributes:true,attributeFilter:["class"],childList:true,subtree:true});
+  }
+
+  function init(){
+    enhanceDesktopDashboard();
+    watchDashboard();
+    setTimeout(enhanceDesktopDashboard,100);
+    setTimeout(enhanceDesktopDashboard,600);
+  }
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});
+  else init();
+})();
