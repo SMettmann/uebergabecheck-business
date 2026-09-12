@@ -6,8 +6,12 @@ on:
     paths:
       - index.html
       - team.html
+      - business-tools.js
+      - support.html
+      - admin.html
       - tools/build_integrated_app.py
       - tools/patch_team_session.py
+      - tools/inject_support_admin.py
       - .github/workflows/build-integrated-app.yml
   workflow_dispatch:
 
@@ -29,10 +33,16 @@ jobs:
       - name: Patch team session handling
         run: python tools/patch_team_session.py
 
+      - name: Inject support and admin launcher
+        run: python tools/inject_support_admin.py
+
       - name: Validate generated files
         run: |
           test -s app.html
           test -s team.html
+          test -s support.html
+          test -s admin.html
+          test -s business-tools.js
           grep -q "UEBERGABECHECK_ROLE_GUARDS_START" app.html
           grep -q "resetRoleState" app.html
           grep -q "Keine Berechtigung" app.html
@@ -44,17 +54,19 @@ jobs:
           grep -q "müssen zuerst vom Inhaber" app.html
           grep -q "revalidateTeamSession" team.html
           grep -q "onAuthStateChange" team.html
+          grep -q 'business-tools.js?v=1' index.html
+          grep -q 'business-tools.js?v=1' app.html
 
       - name: Commit generated files
         run: |
-          if git diff --quiet -- app.html team.html; then
+          if git diff --quiet -- index.html app.html team.html; then
             echo "Generated files already current"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app.html team.html
-          git commit -m "Build Business app with owner legal gate"
+          git add index.html app.html team.html
+          git commit -m "Build Business app with support and admin launcher"
           git push
 
 # Desktop dashboard rebuild trigger: 2026-08-28
