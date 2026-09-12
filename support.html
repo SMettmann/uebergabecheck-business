@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Support & Ideen · ÜbergabeCheck Business</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f6f8;color:#17181b}.wrap{max-width:980px;margin:auto;padding:28px 18px 60px}.top{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:24px}.brand{font-size:21px;font-weight:850}.brand span{font-weight:500;color:#777}.back{display:inline-flex;align-items:center;text-decoration:none;color:#333;font-size:13px;font-weight:800;background:#fff;border:1px solid #ddd;border-radius:11px;padding:10px 13px}.hero{background:#111;color:#fff;border-radius:22px;padding:30px;margin-bottom:16px}.kicker{font-size:11px;font-weight:850;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin-bottom:8px}.hero h1{margin:0 0 8px;font-size:34px;letter-spacing:-1px}.hero p{margin:0;color:#c8c8c8;line-height:1.6;max-width:690px}.card{background:#fff;border:1px solid #e2e3e6;border-radius:20px;padding:22px;margin-bottom:14px;box-shadow:0 4px 18px rgba(0,0,0,.03)}.head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start;margin-bottom:17px}.head h2{font-size:21px;margin:0 0 5px}.muted{color:#777;font-size:13px;line-height:1.5}.types{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 18px}.type{border:1px solid #ddd;background:#f5f6f8;color:#555;border-radius:999px;padding:9px 12px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.type.active{background:#111;border-color:#111;color:#fff}label{display:block;font-size:12px;font-weight:800;margin:14px 0 6px}input,textarea{width:100%;padding:12px 13px;border:1px solid #d8d9dd;border-radius:11px;background:#fff;font:inherit}textarea{min-height:145px;resize:vertical;line-height:1.5}button{border:0;border-radius:11px;padding:11px 14px;font:inherit;font-weight:800;cursor:pointer}.primary{background:#111;color:#fff}.secondary{background:#ececef;color:#222}.form-actions{display:flex;justify-content:flex-end;margin-top:15px}.status{font-size:13px;margin-top:11px;min-height:20px}.status.ok{color:#18743a}.status.error{color:#a11}.request{border:1px solid #e5e5e7;border-radius:15px;padding:15px;margin-top:10px}.request-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.request h3{font-size:14px;margin:3px 0 4px}.request small{font-size:11px;color:#888}.request p{font-size:13px;line-height:1.5;color:#555;margin:10px 0 0;white-space:pre-wrap}.pill{display:inline-block;font-size:10px;font-weight:850;padding:6px 8px;border-radius:999px;background:#f0f1f3;white-space:nowrap}.pill.work{background:#fff4d9;color:#805d14}.pill.done{background:#e9f5ec;color:#27683b}.pill.no{background:#ffe9e9;color:#913737}.category{font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.5px;color:#777}.reply{margin-top:11px;background:#f5f6f8;border-radius:11px;padding:11px 12px;font-size:12px;line-height:1.5}.reply strong{display:block;margin-bottom:3px}.empty{padding:20px;border:1px dashed #d4d5d9;border-radius:13px;text-align:center;color:#777;font-size:13px}.hidden{display:none!important}.footer{text-align:center;color:#888;font-size:12px;margin-top:24px}.footer a{color:inherit}@media(max-width:650px){.wrap{padding:18px 12px 45px}.top,.head,.request-top{align-items:stretch;flex-direction:column}.hero{padding:24px 20px}.hero h1{font-size:29px}.form-actions button{width:100%}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="brand">Übergabe<span>Check</span> Business</div><a class="back" href="app.html">← Dashboard</a></div>
+  <section class="hero"><div class="kicker">DIREKTER DRAHT ZU UNS</div><h1>Support & Ideen</h1><p>Fehler melden, eine Frage stellen oder eine Idee einreichen. Deine Nachricht landet direkt bei ÜbergabeCheck und du siehst hier den aktuellen Bearbeitungsstand.</p></section>
+
+  <section class="card" id="formCard">
+    <div class="head"><div><h2>Neue Nachricht</h2><div class="muted">Wähle zuerst, worum es geht.</div></div></div>
+    <form id="feedbackForm">
+      <div class="types" role="group" aria-label="Art der Nachricht">
+        <button class="type active" type="button" data-category="fehler">🐞 Fehler melden</button>
+        <button class="type" type="button" data-category="frage">❓ Frage stellen</button>
+        <button class="type" type="button" data-category="support">🛟 Support</button>
+        <button class="type" type="button" data-category="verbesserung">💡 Verbesserung</button>
+      </div>
+      <input id="category" type="hidden" value="fehler">
+      <label for="title">Kurz gesagt: Worum geht es?</label>
+      <input id="title" maxlength="120" required placeholder="z. B. PDF lässt sich auf dem iPhone nicht öffnen">
+      <label for="details">Beschreibung</label>
+      <textarea id="details" maxlength="4000" required placeholder="Beschreibe kurz, was passiert ist, was du erwartet hast oder was du dir wünschst."></textarea>
+      <div class="muted" id="hint">Bei einem Fehler hilft uns: Was hast du gerade gemacht und auf welchem Gerät/Browser?</div>
+      <div class="form-actions"><button class="primary" id="submitButton" type="submit">An ÜbergabeCheck senden →</button></div>
+      <div class="status" id="formStatus"></div>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="head"><div><h2>Meine Nachrichten</h2><div class="muted">Hier siehst du, was bereits eingegangen ist und woran wir arbeiten.</div></div><button class="secondary" type="button" id="refreshButton">↻ Aktualisieren</button></div>
+    <div id="requestList"><div class="empty">Wird geladen …</div></div>
+  </section>
+  <div class="footer">ÜbergabeCheck Business · <a href="app.html#impressum">Impressum</a> · <a href="app.html#datenschutz">Datenschutz</a></div>
+</div>
+<script>
+const SUPABASE_URL="https://fkirkglhcpltxlcsozmd.supabase.co";
+const SUPABASE_KEY="sb_publishable_lNeX7Hrtp9-FFl3NVb_Gaw_O-21yXWr";
+const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let currentUser=null,currentCompanyId=null;
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const categoryLabel=v=>({fehler:"Fehler",frage:"Frage",support:"Support",verbesserung:"Verbesserung"}[v]||v);
+const statusLabel=v=>({eingegangen:"Eingegangen",in_bearbeitung:"In Bearbeitung",geplant:"Geplant",umgesetzt:"Umgesetzt",abgelehnt:"Nicht umgesetzt",erledigt:"Erledigt"}[v]||v);
+const statusClass=v=>["umgesetzt","erledigt"].includes(v)?"done":v==="abgelehnt"?"no":["in_bearbeitung","geplant"].includes(v)?"work":"";
+const fmt=v=>v?new Intl.DateTimeFormat("de-DE",{dateStyle:"medium",timeStyle:"short"}).format(new Date(v)):"–";
+function setStatus(text,type=""){const el=document.getElementById("formStatus");el.textContent=text||"";el.className="status"+(type?" "+type:"");}
+function selectCategory(value){document.getElementById("category").value=value;document.querySelectorAll("[data-category]").forEach(b=>b.classList.toggle("active",b.dataset.category===value));const hint=document.getElementById("hint");hint.textContent=value==="verbesserung"?"Je konkreter die Idee, desto besser können wir prüfen, ob und wie wir sie umsetzen.":value==="fehler"?"Bei einem Fehler hilft uns: Was hast du gerade gemacht und auf welchem Gerät/Browser?":"Beschreibe dein Anliegen so, dass wir direkt verstehen, wobei wir helfen können.";}
+document.querySelectorAll("[data-category]").forEach(b=>b.addEventListener("click",()=>selectCategory(b.dataset.category)));
+
+async function loadMine(){
+  const target=document.getElementById("requestList");target.innerHTML='<div class="empty">Wird geladen …</div>';
+  const {data,error}=await client.from("business_feedback").select("id,category,title,details,status,admin_note,archived_at,created_at,updated_at").eq("user_id",currentUser.id).order("created_at",{ascending:false});
+  if(error){console.error(error);target.innerHTML='<div class="empty">Nachrichten konnten nicht geladen werden.</div>';return;}
+  const rows=data||[];
+  if(!rows.length){target.innerHTML='<div class="empty">Noch keine Nachricht gesendet.</div>';return;}
+  target.innerHTML=rows.map(x=>`<article class="request"><div class="request-top"><div><div class="category">${esc(categoryLabel(x.category))}${x.archived_at?' · abgeschlossen':''}</div><h3>${esc(x.title)}</h3><small>${esc(fmt(x.created_at))}</small></div><span class="pill ${statusClass(x.status)}">${esc(statusLabel(x.status))}</span></div><p>${esc(x.details)}</p>${x.admin_note?`<div class="reply"><strong>Antwort von ÜbergabeCheck</strong>${esc(x.admin_note)}</div>`:""}</article>`).join("");
+}
+
+async function init(){
+  const {data:{session}}=await client.auth.getSession();
+  currentUser=session?.user||null;
+  if(!currentUser){location.replace("app.html");return;}
+  const {data:membership,error}=await client.from("company_members").select("company_id").eq("user_id",currentUser.id).maybeSingle();
+  if(error||!membership?.company_id){document.getElementById("formCard").classList.add("hidden");document.getElementById("requestList").innerHTML='<div class="empty">Kein aktives Unternehmenskonto gefunden.</div>';return;}
+  currentCompanyId=membership.company_id;
+  await loadMine();
+}
+
+document.getElementById("feedbackForm").addEventListener("submit",async e=>{
+  e.preventDefault();if(!currentUser||!currentCompanyId)return;
+  const button=document.getElementById("submitButton"),title=document.getElementById("title").value.trim(),details=document.getElementById("details").value.trim(),category=document.getElementById("category").value;
+  setStatus("Wird gesendet …");button.disabled=true;
+  const {error}=await client.from("business_feedback").insert({company_id:currentCompanyId,user_id:currentUser.id,category,title,details});
+  button.disabled=false;
+  if(error){console.error(error);setStatus("Senden fehlgeschlagen. Bitte versuche es erneut.","error");return;}
+  document.getElementById("feedbackForm").reset();selectCategory(category);setStatus("✓ Nachricht ist angekommen.","ok");await loadMine();
+});
+document.getElementById("refreshButton").addEventListener("click",loadMine);
+client.auth.onAuthStateChange((_event,session)=>{if(!session)location.replace("app.html");});
+init();
+</script>
+</body>
+</html>
