@@ -1,0 +1,43 @@
+name: Add website visitor stats to admin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/add_site_visit_stats.py
+      - .github/workflows/add-site-visit-stats.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Patch admin visitor stats
+        run: python tools/add_site_visit_stats.py
+
+      - name: Validate
+        run: |
+          grep -q "UEBERGABECHECK_SITE_VISIT_STATS_V1" admin.html
+          grep -q "Website-Besucher" admin.html
+          grep -q "site_visit_events" admin.html
+          grep -q "loadSiteVisitStats" admin.html
+
+      - name: Commit generated file
+        run: |
+          if git diff --quiet -- admin.html; then
+            echo "Admin visitor stats already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add admin.html
+          git commit -m "Show website visitor stats in admin"
+          git push
