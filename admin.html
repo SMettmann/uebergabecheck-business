@@ -63,6 +63,15 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Sego
     <div class="kpi business"><span>Letzte 30 Tage</span><strong id="kpiPrivate30">–</strong></div>
   </div>
 
+  <!-- UEBERGABECHECK_SITE_VISIT_STATS_V1 -->
+  <div class="section-label"><h2>Website-Besucher</h2><span>Anonym gezählte Besuche pro Browser-Sitzung</span></div>
+  <div class="kpis">
+    <div class="kpi business"><span>Besucher gesamt</span><strong id="kpiVisitsTotal">–</strong></div>
+    <div class="kpi business active"><span>Heute</span><strong id="kpiVisitsToday">–</strong></div>
+    <div class="kpi business"><span>Letzte 7 Tage</span><strong id="kpiVisits7">–</strong></div>
+    <div class="kpi business"><span>Letzte 30 Tage</span><strong id="kpiVisits30">–</strong></div>
+  </div>
+
   <div class="section-label"><h2>Support & Verbesserungen</h2><span>Anfragen deiner Kunden</span></div>
   <div class="kpis">
     <div class="kpi"><span>Offen</span><strong id="kpiOpen">–</strong></div>
@@ -204,6 +213,23 @@ async function loadPrivateStats(){
   document.getElementById("kpiPrivate30").textContent=monthQ.count??0;
 }
 
+async function loadSiteVisitStats(){
+  const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),d7=new Date(now),d30=new Date(now);
+  d7.setDate(d7.getDate()-7);d30.setDate(d30.getDate()-30);
+  const [total,todayQ,weekQ,monthQ]=await Promise.all([
+    client.from("site_visit_events").select("id",{count:"exact",head:true}).eq("source","website"),
+    client.from("site_visit_events").select("id",{count:"exact",head:true}).eq("source","website").gte("visited_at",today.toISOString()),
+    client.from("site_visit_events").select("id",{count:"exact",head:true}).eq("source","website").gte("visited_at",d7.toISOString()),
+    client.from("site_visit_events").select("id",{count:"exact",head:true}).eq("source","website").gte("visited_at",d30.toISOString())
+  ]);
+  const queries=[total,todayQ,weekQ,monthQ];
+  if(queries.some(q=>q.error)){console.error(...queries.map(q=>q.error).filter(Boolean));return;}
+  document.getElementById("kpiVisitsTotal").textContent=total.count??0;
+  document.getElementById("kpiVisitsToday").textContent=todayQ.count??0;
+  document.getElementById("kpiVisits7").textContent=weekQ.count??0;
+  document.getElementById("kpiVisits30").textContent=monthQ.count??0;
+}
+
 async function load(){
   const target=document.getElementById("list");
   target.innerHTML='<div class="empty">Wird geladen …</div>';
@@ -212,7 +238,7 @@ async function load(){
   rows=data||[];updateKpis();render();
 }
 
-async function refreshAll(){await Promise.all([loadBusinessStats(),loadCompanies(),loadPrivateStats(),load()]);}
+async function refreshAll(){await Promise.all([loadBusinessStats(),loadCompanies(),loadPrivateStats(),loadSiteVisitStats(),load()]);}
 
 async function patch(id,payload){
   const {error}=await client.from("business_feedback").update(payload).eq("id",id);
