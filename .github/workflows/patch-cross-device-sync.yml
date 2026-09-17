@@ -1,0 +1,112 @@
+name: Fix cross-device Business sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-cross-device-sync.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Patch cross-device refresh and cache busting
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          version='20260917-2118'
+
+          # Business tools: expose refresh, refresh when device/tab becomes active,
+          # and always request the newest settings module.
+          p=Path('business-tools.js')
+          s=p.read_text(encoding='utf-8')
+          if 'UEBERGABECHECK_CROSS_DEVICE_SYNC_V1' not in s:
+              s=s.replace(
+                  '    window.__uebergabeCheckAppliedTextBlocks=()=>clone(appliedTextBlocks);\n',
+                  '    window.__uebergabeCheckAppliedTextBlocks=()=>clone(appliedTextBlocks);\n    window.__uebergabeCheckReloadTextBlocks=loadTextBlocks;\n    window.__uebergabeCheckSyncBusinessTools=sync;\n',
+                  1
+              )
+              old='''    api?.auth?.onAuthStateChange(()=>setTimeout(sync,120));\n    setTimeout(sync,500);\n'''
+              new='''    api?.auth?.onAuthStateChange(()=>setTimeout(sync,120));\n    // UEBERGABECHECK_CROSS_DEVICE_SYNC_V1\n    window.addEventListener("focus",()=>setTimeout(sync,80));\n    document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(sync,80);});\n    setTimeout(sync,500);\n'''
+              if old not in s:
+                  raise SystemExit('business-tools init anchor not found')
+              s=s.replace(old,new,1)
+          s=s.replace('business-settings.js?v=1',f'business-settings.js?v={version}')
+          p.write_text(s,encoding='utf-8')
+
+          # Settings: reload company settings whenever the device/tab becomes active.
+          p=Path('business-settings.js')
+          s=p.read_text(encoding='utf-8')
+          if 'UEBERGABECHECK_SETTINGS_CROSS_DEVICE_V1' not in s:
+              old='''    api?.auth?.onAuthStateChange(()=>setTimeout(async()=>{companyId=null;await loadSettings();syncUi();},150));\n    window.__uebergabeCheckCompanySettings=()=>({...settings});\n'''
+              new='''    api?.auth?.onAuthStateChange(()=>setTimeout(async()=>{companyId=null;await loadSettings();syncUi();},150));\n    // UEBERGABECHECK_SETTINGS_CROSS_DEVICE_V1\n    const refreshFromServer=()=>setTimeout(async()=>{companyId=null;await loadSettings();syncUi();},80);\n    window.addEventListener("focus",refreshFromServer);\n    document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshFromServer();});\n    window.__uebergabeCheckCompanySettings=()=>({...settings});\n    window.__uebergabeCheckReloadSettings=loadSettings;\n'''
+              if old not in s:
+                  raise SystemExit('business-settings init anchor not found')
+              s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+
+          # Force browsers to get fresh JS on every page load. This prevents phone/PC
+          # running different frontend versions after a deployment.
+          for name in ('index.html','app.html'):
+              p=Path(name)
+              s=p.read_text(encoding='utf-8')
+              s=s.replace('<script src="pdf-export.js?v=1"></script>', '<script>document.write(\'<script src="pdf-export.js?v=\'+Date.now()+\'"><\\/script>\');</script>')
+              s=s.replace('<script src="business-tools.js?v=1"></script>', '<script>document.write(\'<script src="business-tools.js?v=\'+Date.now()+\'"><\\/script>\');</script>')
+              p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Validate patch
+        run: |
+          grep -q 'UEBERGABECHECK_CROSS_DEVICE_SYNC_V1' business-tools.js
+          grep -q 'UEBERGABECHECK_SETTINGS_CROSS_DEVICE_V1' business-settings.js
+          grep -q 'business-tools.js?v=' index.html
+          grep -q 'Date.now()' index.html
+          grep -q 'Date.now()' app.html
+
+      - name: Commit patched files
+        run: |
+          if git diff --quiet -- business-tools.js business-settings.js index.html app.html; then
+            echo "No changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add business-tools.js business-settings.js index.html app.html
+          git commit -m "Fix cross-device settings and text block sync"
+          git push origin main
+
+      - name: Install SFTP client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+
+      - name: Deploy sync fix to STRATO
+        env:
+          STRATO_HOST: ${{ secrets.STRATO_HOST }}
+          STRATO_USER: ${{ secrets.STRATO_USER }}
+          STRATO_PASSWORD: ${{ secrets.STRATO_PASSWORD }}
+        run: |
+          lftp <<EOF
+          set cmd:fail-exit yes
+          set net:max-retries 2
+          set net:timeout 20
+          set sftp:auto-confirm yes
+          open -u "$STRATO_USER","$STRATO_PASSWORD" sftp://$STRATO_HOST:22
+          put .htaccess -o .htaccess
+          put index.html -o index.html
+          put app.html -o app.html
+          put business-tools.js -o business-tools.js
+          put business-settings.js -o business-settings.js
+          put pdf-export.js -o pdf-export.js
+          bye
+          EOF
