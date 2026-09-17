@@ -41,12 +41,34 @@ jobs:
         run: |
           if git diff --quiet -- business-tools.js; then
             echo "Loader already installed."
-            exit 0
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add business-tools.js
+            git commit -m "Load object-only transfer support"
+            git push origin main
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add business-tools.js
-          git commit -m "Load object-only transfer support"
-          git push origin main
 
-# trigger: 2026-09-17 object-only transfers
+      - name: Install SFTP client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+
+      - name: Deploy object transfer support to STRATO
+        env:
+          STRATO_HOST: ${{ secrets.STRATO_HOST }}
+          STRATO_USER: ${{ secrets.STRATO_USER }}
+          STRATO_PASSWORD: ${{ secrets.STRATO_PASSWORD }}
+        run: |
+          lftp <<EOF
+          set cmd:fail-exit yes
+          set net:max-retries 2
+          set net:timeout 20
+          set sftp:auto-confirm yes
+          open -u "$STRATO_USER","$STRATO_PASSWORD" sftp://$STRATO_HOST:22
+          put business-tools.js -o business-tools.js
+          put object-transfer-support.js -o object-transfer-support.js
+          bye
+          EOF
+
+# trigger: 2026-09-17 deploy object-only transfers
