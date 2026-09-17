@@ -1,0 +1,314 @@
+name: Patch Business settings UI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-settings-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Add settings UI and module controls
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          js_path=Path('business-tools.js')
+          text=js_path.read_text(encoding='utf-8')
+          marker='UEBERGABECHECK_SETTINGS_V1'
+          if marker in text:
+              print('Settings UI already installed.')
+          else:
+              text=text.replace(
+                  '  let wrappersInstalled=false;\n',
+                  '  let wrappersInstalled=false;\n  let companySettings={text_blocks_enabled:true,default_landlord:"",show_company_logo:true};\n',
+                  1
+              )
+
+              settings_code=r'''
+  // UEBERGABECHECK_SETTINGS_V1
+  function addSettingsButton(){
+    const actions=dashboardActions();
+    if(!actions||document.getElementById("businessSettingsButton"))return;
+    const button=document.createElement("button");
+    button.id="businessSettingsButton";
+    button.type="button";
+    button.className="secondary";
+    button.textContent="⚙ Einstellungen";
+    button.addEventListener("click",showSettingsManager);
+    const admin=document.getElementById("businessInternalAdminButton");
+    const logout=[...actions.querySelectorAll("button")].find(b=>String(b.getAttribute("onclick")||"").includes("businessLogout"));
+    if(admin)actions.insertBefore(button,admin);
+    else if(logout)actions.insertBefore(button,logout);
+    else actions.appendChild(button);
+  }
+
+  function ensureSettingsManager(){
+    const dashboard=document.getElementById("businessDashboard");
+    if(!dashboard)return;
+    document.getElementById("businessTextBlocksNavButton")?.remove();
+    if(document.getElementById("settingsOverviewCard"))return;
+
+    const card=document.createElement("section");
+    card.id="settingsOverviewCard";
+    card.className="dashboard-card hidden uc-textblock-card";
+    card.innerHTML=`
+      <div class="uc-textblock-toolbar">
+        <div><h2 style="margin:0;">Einstellungen</h2><p>Lege fest, welche Funktionen dein Team bei Übergaben nutzt und welche Standardwerte automatisch vorbelegt werden.</p></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:16px;">
+        <div style="border:1px solid #e1e2e5;border-radius:14px;padding:16px;background:#fff;">
+          <h3 style="margin:0 0 5px;font-size:15px;">Module</h3>
+          <p style="margin:0 0 14px;color:#73757b;font-size:12px;line-height:1.5;">Bereiche ein- oder ausblenden, ohne gespeicherte Inhalte zu löschen.</p>
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;font-weight:700;">
+            <span>Textbausteine verwenden</span>
+            <input id="ucSettingTextBlocks" type="checkbox" style="width:auto;min-width:18px;min-height:18px;">
+          </label>
+        </div>
+
+        <div style="border:1px solid #e1e2e5;border-radius:14px;padding:16px;background:#fff;">
+          <h3 style="margin:0 0 5px;font-size:15px;">Protokoll & PDF</h3>
+          <p style="margin:0 0 14px;color:#73757b;font-size:12px;line-height:1.5;">Passe die Darstellung der automatisch erzeugten Unterlagen an.</p>
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;font-weight:700;">
+            <span>Firmenlogo im PDF anzeigen</span>
+            <input id="ucSettingShowLogo" type="checkbox" style="width:auto;min-width:18px;min-height:18px;">
+          </label>
+        </div>
+      </div>
+
+      <div style="border:1px solid #e1e2e5;border-radius:14px;padding:16px;background:#fff;margin-bottom:4px;">
+        <h3 style="margin:0 0 5px;font-size:15px;">Standardwerte</h3>
+        <p style="margin:0 0 12px;color:#73757b;font-size:12px;line-height:1.5;">Optional einen festen Vermieter vorbelegen. Bleibt das Feld leer, wird weiterhin der Unternehmensname verwendet.</p>
+        <label for="ucSettingLandlord">Standard-Vermieter</label>
+        <input id="ucSettingLandlord" type="text" placeholder="z. B. Muster Hausverwaltung GmbH">
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+        <button type="button" class="primary" id="ucSaveSettings">Einstellungen speichern</button>
+      </div>
+    `;
+    dashboard.appendChild(card);
+    card.querySelector("#ucSaveSettings")?.addEventListener("click",saveCompanySettings);
+  }
+
+  function renderCompanySettings(){
+    const textToggle=document.getElementById("ucSettingTextBlocks");
+    const logoToggle=document.getElementById("ucSettingShowLogo");
+    const landlord=document.getElementById("ucSettingLandlord");
+    if(textToggle)textToggle.checked=companySettings.text_blocks_enabled!==false;
+    if(logoToggle)logoToggle.checked=companySettings.show_company_logo!==false;
+    if(landlord)landlord.value=companySettings.default_landlord||"";
+    applyCompanySettingsToUI();
+  }
+
+  async function loadCompanySettings(){
+    const api=db();
+    const cid=companyId||await resolveCompanyId();
+    companySettings={text_blocks_enabled:true,default_landlord:"",show_company_logo:true};
+    if(!api||!cid){renderCompanySettings();return companySettings;}
+    const {data,error}=await api.from("company_settings")
+      .select("text_blocks_enabled,default_landlord,show_company_logo")
+      .eq("company_id",cid)
+      .maybeSingle();
+    if(error){console.error("Einstellungen laden:",error);renderCompanySettings();return companySettings;}
+    if(data)companySettings={...companySettings,...data};
+    renderCompanySettings();
+    return companySettings;
+  }
+
+  async function saveCompanySettings(){
+    const api=db();
+    const cid=companyId||await resolveCompanyId();
+    if(!api||!cid){alert("Das Firmenkonto konnte nicht geladen werden.");return;}
+    const payload={
+      company_id:cid,
+      text_blocks_enabled:!!document.getElementById("ucSettingTextBlocks")?.checked,
+      default_landlord:document.getElementById("ucSettingLandlord")?.value.trim()||"",
+      show_company_logo:!!document.getElementById("ucSettingShowLogo")?.checked,
+      updated_at:new Date().toISOString()
+    };
+    const {error}=await api.from("company_settings").upsert(payload,{onConflict:"company_id"});
+    if(error){
+      console.error("Einstellungen speichern:",error);
+      alert("Die Einstellungen konnten nicht gespeichert werden. Nur Inhaber und Admins dürfen diese Unternehmens-Einstellungen ändern.");
+      return;
+    }
+    companySettings={...companySettings,...payload};
+    renderCompanySettings();
+    renderTransferTextBlockSelects();
+    alert("Einstellungen gespeichert.");
+  }
+
+  function applyCompanySettingsToUI(){
+    const builder=document.getElementById("ucTransferTextBlocks");
+    if(builder)builder.classList.toggle("hidden",companySettings.text_blocks_enabled===false);
+  }
+
+  async function showSettingsManager(){
+    ensureSettingsManager();
+    ensureTextBlockManager();
+    const dashboard=document.getElementById("businessDashboard");
+    const app=document.getElementById("appContent");
+    dashboard?.classList.remove("hidden");
+    if(dashboard)dashboard.style.display="block";
+    app?.classList.add("hidden");
+    if(app)app.style.display="none";
+    hideKnownDashboardSections();
+    document.getElementById("settingsOverviewCard")?.classList.remove("hidden");
+    document.getElementById("textBlocksOverviewCard")?.classList.remove("hidden");
+    document.querySelectorAll("#businessMainNav button").forEach(b=>b.classList.remove("active"));
+    await loadCompanySettings();
+    await loadTextBlocks();
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+'''
+              anchor='  function ensureTextBlockManager(){\n'
+              if anchor not in text:
+                  raise SystemExit('ensureTextBlockManager anchor not found')
+              text=text.replace(anchor,settings_code+anchor,1)
+
+              old_nav=r'''    const dashboard=document.getElementById("businessDashboard");
+    const nav=document.getElementById("businessMainNav");
+    if(!dashboard||!nav)return;
+
+    if(!document.getElementById("businessTextBlocksNavButton")){
+      const button=document.createElement("button");
+      button.id="businessTextBlocksNavButton";
+      button.type="button";
+      button.textContent="Textbausteine";
+      button.addEventListener("click",()=>showTextBlockManager(button));
+      nav.appendChild(button);
+    }
+'''
+              new_nav=r'''    const dashboard=document.getElementById("businessDashboard");
+    if(!dashboard)return;
+    document.getElementById("businessTextBlocksNavButton")?.remove();
+'''
+              if old_nav not in text:
+                  raise SystemExit('Text block nav block not found')
+              text=text.replace(old_nav,new_nav,1)
+
+              text=text.replace(
+                  '  function activeBlocks(){return textBlocks.filter(block=>block.active!==false);}\n',
+                  '  function activeBlocks(){return companySettings.text_blocks_enabled===false?[]:textBlocks.filter(block=>block.active!==false);}\n',
+                  1
+              )
+
+              text=text.replace(
+                  '    renderTransferTextBlockSelects();\n    renderAppliedTextBlocks();\n  }\n\n  function activeBlocks()',
+                  '    renderTransferTextBlockSelects();\n    renderAppliedTextBlocks();\n    applyCompanySettingsToUI();\n  }\n\n  function activeBlocks()',
+                  1
+              )
+
+              text=text.replace(
+                  '        const result=originalNavigate.apply(this,args);\n',
+                  '        document.getElementById("settingsOverviewCard")?.classList.add("hidden");\n        const result=originalNavigate.apply(this,args);\n',
+                  1
+              )
+              text=text.replace(
+                  '        document.getElementById("textBlocksOverviewCard")?.classList.add("hidden");\n        return originalShowDashboard.apply(this,args);',
+                  '        document.getElementById("textBlocksOverviewCard")?.classList.add("hidden");\n        document.getElementById("settingsOverviewCard")?.classList.add("hidden");\n        return originalShowDashboard.apply(this,args);',
+                  1
+              )
+
+              start_seq='''        const result=originalStartApp.apply(this,args);\n        ensureTransferTextBlockBuilder();\n        renderAppliedTextBlocks();\n'''
+              start_repl='''        const result=originalStartApp.apply(this,args);\n        ensureTransferTextBlockBuilder();\n        renderAppliedTextBlocks();\n        applyCompanySettingsToUI();\n        const landlordInput=document.getElementById("landlord");\n        if(landlordInput && companySettings.default_landlord){\n          landlordInput.value=companySettings.default_landlord;\n          landlordInput.dispatchEvent(new Event("input",{bubbles:true}));\n        }\n'''
+              if start_seq not in text:
+                  raise SystemExit('startApp wrapper sequence not found')
+              text=text.replace(start_seq,start_repl,1)
+
+              text=text.replace(
+                  '    window.__uebergabeCheckAppliedTextBlocks=()=>clone(appliedTextBlocks);\n',
+                  '    window.__uebergabeCheckAppliedTextBlocks=()=>clone(appliedTextBlocks);\n    window.__uebergabeCheckCompanySettings=()=>clone(companySettings);\n',
+                  1
+              )
+
+              old_sync='''    installStyles();\n    ensureTextBlockManager();\n    ensureTransferTextBlockBuilder();\n    addSupportButton();\n'''
+              new_sync='''    installStyles();\n    ensureSettingsManager();\n    ensureTextBlockManager();\n    ensureTransferTextBlockBuilder();\n    addSupportButton();\n    addSettingsButton();\n'''
+              if old_sync not in text:
+                  raise SystemExit('sync setup block not found')
+              text=text.replace(old_sync,new_sync,1)
+              text=text.replace(
+                  '      await resolveCompanyId();\n      await loadTextBlocks();\n',
+                  '      await resolveCompanyId();\n      await loadCompanySettings();\n      await loadTextBlocks();\n',
+                  1
+              )
+
+              old_observer='''      installStyles();\n      ensureTextBlockManager();\n      ensureTransferTextBlockBuilder();\n      addSupportButton();\n'''
+              new_observer='''      installStyles();\n      ensureSettingsManager();\n      ensureTextBlockManager();\n      ensureTransferTextBlockBuilder();\n      addSupportButton();\n      addSettingsButton();\n'''
+              if old_observer not in text:
+                  raise SystemExit('observer block not found')
+              text=text.replace(old_observer,new_observer,1)
+
+              js_path.write_text(text,encoding='utf-8')
+
+          pdf_path=Path('pdf-export.js')
+          pdf=pdf_path.read_text(encoding='utf-8')
+          if 'UEBERGABECHECK_PDF_SETTINGS_V1' not in pdf:
+              pdf=pdf.replace(
+                  '    const company=window.businessCompanyProfile||{};\n',
+                  '    const company=window.businessCompanyProfile||{};\n    // UEBERGABECHECK_PDF_SETTINGS_V1\n    const businessSettings=typeof window.__uebergabeCheckCompanySettings==="function"?window.__uebergabeCheckCompanySettings():{};\n',
+                  1
+              )
+              old='      const logo=company.logo_data?await dataUrlToJpeg(company.logo_data,700,.9):null;\n'
+              new='      const logo=(businessSettings.show_company_logo!==false && company.logo_data)?await dataUrlToJpeg(company.logo_data,700,.9):null;\n'
+              if old not in pdf:
+                  raise SystemExit('PDF logo line not found')
+              pdf=pdf.replace(old,new,1)
+              pdf_path.write_text(pdf,encoding='utf-8')
+          PY
+
+      - name: Validate patched files
+        run: |
+          grep -q 'UEBERGABECHECK_SETTINGS_V1' business-tools.js
+          grep -q 'businessSettingsButton' business-tools.js
+          grep -q 'company_settings' business-tools.js
+          grep -q 'UEBERGABECHECK_PDF_SETTINGS_V1' pdf-export.js
+
+      - name: Commit source change
+        run: |
+          if git diff --quiet -- business-tools.js pdf-export.js; then
+            echo "No source change required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add business-tools.js pdf-export.js
+          git commit -m "Move text blocks into Business settings"
+          git push origin main
+
+      - name: Install SFTP client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+
+      - name: Deploy updated Business settings files to STRATO
+        env:
+          STRATO_HOST: ${{ secrets.STRATO_HOST }}
+          STRATO_USER: ${{ secrets.STRATO_USER }}
+          STRATO_PASSWORD: ${{ secrets.STRATO_PASSWORD }}
+        run: |
+          lftp <<EOF
+          set cmd:fail-exit yes
+          set net:max-retries 2
+          set net:timeout 20
+          set sftp:auto-confirm yes
+          open -u "$STRATO_USER","$STRATO_PASSWORD" sftp://$STRATO_HOST:22
+          put business-tools.js -o business-tools.js
+          put pdf-export.js -o pdf-export.js
+          bye
+          EOF
