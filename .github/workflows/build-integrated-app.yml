@@ -54,8 +54,10 @@ jobs:
           grep -q "müssen zuerst vom Inhaber" app.html
           grep -q "revalidateTeamSession" team.html
           grep -q "onAuthStateChange" team.html
-          grep -q 'business-tools.js?v=1' index.html
-          grep -q 'business-tools.js?v=1' app.html
+          grep -q 'business-tools.js?v=' index.html
+          grep -q 'business-tools.js?v=' app.html
+          grep -q 'Date.now()' index.html
+          grep -q 'Date.now()' app.html
 
       - name: Commit generated files
         run: |
