@@ -1,0 +1,130 @@
+name: Patch object address autofill
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-object-address-autofill.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Patch Business address autofill
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('business-tools.js')
+          text = path.read_text(encoding='utf-8')
+          marker = 'UEBERGABECHECK_OBJECT_ADDRESS_AUTOFILL_V1'
+          if marker in text:
+              print('Address autofill already installed.')
+              raise SystemExit(0)
+
+          old = '''    const originalStartApp=window.startApp;
+    if(typeof originalStartApp==="function"){
+      window.startApp=function(...args){
+        appliedTextBlocks=[];
+        const result=originalStartApp.apply(this,args);
+        ensureTransferTextBlockBuilder();
+        renderAppliedTextBlocks();
+        return result;
+      };
+    }
+'''
+
+          new = '''    const originalStartApp=window.startApp;
+    if(typeof originalStartApp==="function"){
+      window.startApp=function(...args){
+        appliedTextBlocks=[];
+        const result=originalStartApp.apply(this,args);
+        ensureTransferTextBlockBuilder();
+        renderAppliedTextBlocks();
+
+        // UEBERGABECHECK_OBJECT_ADDRESS_AUTOFILL_V1
+        try{
+          const addressInput=document.getElementById("address");
+          let objectId=(typeof selectedBusinessObjectId!=="undefined")?selectedBusinessObjectId:null;
+
+          if(!objectId && typeof selectedApartmentId!=="undefined" && selectedApartmentId && typeof businessApartments!=="undefined"){
+            for(const [candidateObjectId,apartments] of Object.entries(businessApartments||{})){
+              if(Array.isArray(apartments) && apartments.some(apartment=>String(apartment?.id)===String(selectedApartmentId))){
+                objectId=candidateObjectId;
+                break;
+              }
+            }
+          }
+
+          const objects=(typeof businessObjects!=="undefined" && Array.isArray(businessObjects))?businessObjects:[];
+          const object=objects.find(item=>String(item?.id)===String(objectId));
+
+          if(addressInput && object){
+            const street=String(object.street||"").trim();
+            const place=[object.zip,object.city].filter(Boolean).join(" ").trim();
+            const address=[street,place].filter(Boolean).join(", ");
+            if(address){
+              addressInput.value=address;
+              addressInput.dispatchEvent(new Event("input",{bubbles:true}));
+              addressInput.dispatchEvent(new Event("change",{bubbles:true}));
+            }
+          }
+        }catch(error){
+          console.warn("Objektadresse konnte nicht automatisch übernommen werden:",error);
+        }
+
+        return result;
+      };
+    }
+'''
+
+          if old not in text:
+              raise SystemExit('Expected startApp wrapper not found; no file changed.')
+
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          print('Installed automatic object address transfer.')
+
+      - name: Commit patch
+        run: |
+          if git diff --quiet -- business-tools.js; then
+            echo "No source change required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add business-tools.js
+          git commit -m "Autofill object address for new transfers"
+          git push origin main
+
+      - name: Install SFTP client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+
+      - name: Deploy updated Business tools to STRATO
+        env:
+          STRATO_HOST: ${{ secrets.STRATO_HOST }}
+          STRATO_USER: ${{ secrets.STRATO_USER }}
+          STRATO_PASSWORD: ${{ secrets.STRATO_PASSWORD }}
+        run: |
+          lftp <<EOF
+          set cmd:fail-exit yes
+          set net:max-retries 2
+          set net:timeout 20
+          set sftp:auto-confirm yes
+          open -u "$STRATO_USER","$STRATO_PASSWORD" sftp://$STRATO_HOST:22
+          put business-tools.js -o business-tools.js
+          bye
+          EOF
+
+      - name: Done
+        run: echo "Objektadresse wird bei neuen Übergaben automatisch übernommen."
