@@ -651,3 +651,6 @@
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});
   else init();
 })();
+
+/* UEBERGABECHECK_SETTINGS_LOADER_V1 */
+(function(){if(document.querySelector("script[data-uc-business-settings]"))return;const e=document.createElement("script");e.src="business-settings.js?v=1";e.async=false;e.dataset.ucBusinessSettings="1";document.head.appendChild(e);})();
