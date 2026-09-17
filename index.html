@@ -4121,7 +4121,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 </script>
-<script src="pdf-export.js?v=1"></script>
+<script>document.write('<script src="pdf-export.js?v='+Date.now()+'"><\/script>');</script>
 
 <button id="globalDashboardNav" class="global-dashboard-nav hidden" type="button" onclick="goToBusinessDashboardFromAnywhere()">← Dashboard</button>
 <script>
@@ -4153,6 +4153,6 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 })();
 </script>
-<script src="business-tools.js?v=1"></script>
+<script>document.write('<script src="business-tools.js?v='+Date.now()+'"><\/script>');</script>
 </body>
 </html>

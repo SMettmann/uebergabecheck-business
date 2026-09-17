@@ -611,6 +611,8 @@
     }
 
     window.__uebergabeCheckAppliedTextBlocks=()=>clone(appliedTextBlocks);
+    window.__uebergabeCheckReloadTextBlocks=loadTextBlocks;
+    window.__uebergabeCheckSyncBusinessTools=sync;
   }
 
   async function sync(){
@@ -645,6 +647,9 @@
     sync();
     const api=db();
     api?.auth?.onAuthStateChange(()=>setTimeout(sync,120));
+    // UEBERGABECHECK_CROSS_DEVICE_SYNC_V1
+    window.addEventListener("focus",()=>setTimeout(sync,80));
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(sync,80);});
     setTimeout(sync,500);
   }
 
@@ -653,4 +658,4 @@
 })();
 
 /* UEBERGABECHECK_SETTINGS_LOADER_V1 */
-(function(){if(document.querySelector("script[data-uc-business-settings]"))return;const e=document.createElement("script");e.src="business-settings.js?v=1";e.async=false;e.dataset.ucBusinessSettings="1";document.head.appendChild(e);})();
+(function(){if(document.querySelector("script[data-uc-business-settings]"))return;const e=document.createElement("script");e.src="business-settings.js?v=20260917-2118";e.async=false;e.dataset.ucBusinessSettings="1";document.head.appendChild(e);})();

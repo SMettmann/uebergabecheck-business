@@ -239,7 +239,12 @@
     syncUi();
     await loadSettings();
     api?.auth?.onAuthStateChange(()=>setTimeout(async()=>{companyId=null;await loadSettings();syncUi();},150));
+    // UEBERGABECHECK_SETTINGS_CROSS_DEVICE_V1
+    const refreshFromServer=()=>setTimeout(async()=>{companyId=null;await loadSettings();syncUi();},80);
+    window.addEventListener("focus",refreshFromServer);
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshFromServer();});
     window.__uebergabeCheckCompanySettings=()=>({...settings});
+    window.__uebergabeCheckReloadSettings=loadSettings;
   }
 
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});
