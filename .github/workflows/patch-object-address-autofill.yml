@@ -1,18 +1,18 @@
 name: Patch object address autofill
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/patch-object-address-autofill.yml'
   workflow_dispatch:
-
-permissions:
-  contents: write
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/patch-object-address-autofill.yml
 
 jobs:
   patch:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -20,15 +20,15 @@ jobs:
           ref: main
 
       - name: Patch Business address autofill
-        shell: python
         run: |
+          python3 <<'PY'
           from pathlib import Path
 
-          path = Path('business-tools.js')
-          text = path.read_text(encoding='utf-8')
-          marker = 'UEBERGABECHECK_OBJECT_ADDRESS_AUTOFILL_V1'
+          path = Path("business-tools.js")
+          text = path.read_text(encoding="utf-8")
+          marker = "UEBERGABECHECK_OBJECT_ADDRESS_AUTOFILL_V1"
           if marker in text:
-              print('Address autofill already installed.')
+              print("Address autofill already installed.")
               raise SystemExit(0)
 
           old = '''    const originalStartApp=window.startApp;
@@ -88,22 +88,23 @@ jobs:
 '''
 
           if old not in text:
-              raise SystemExit('Expected startApp wrapper not found; no file changed.')
+              raise SystemExit("Expected startApp wrapper not found; no file changed.")
 
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          print('Installed automatic object address transfer.')
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          print("Installed automatic object address transfer.")
+          PY
 
       - name: Commit patch
         run: |
           if git diff --quiet -- business-tools.js; then
             echo "No source change required."
-            exit 0
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add business-tools.js
+            git commit -m "Autofill object address for new transfers"
+            git push origin main
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add business-tools.js
-          git commit -m "Autofill object address for new transfers"
-          git push origin main
 
       - name: Install SFTP client
         run: |
@@ -127,4 +128,5 @@ jobs:
           EOF
 
       - name: Done
-        run: echo "Objektadresse wird bei neuen Übergaben automatisch übernommen."
+        run: |
+          echo "Object address autofill patched and deployed."
