@@ -99,6 +99,21 @@
     return "Offen";
   }
 
+  function getAppliedTextBlocks(){
+    try{
+      const blocks=typeof window.__uebergabeCheckAppliedTextBlocks==="function"
+        ? window.__uebergabeCheckAppliedTextBlocks()
+        : [];
+      return Array.isArray(blocks)?blocks:[];
+    }catch(_error){
+      return [];
+    }
+  }
+
+  function textBlockPath(block){
+    return [block?.path_1,block?.path_2,block?.path_3].filter(Boolean).join(" → ");
+  }
+
   async function createProtocolPdfBlob(){
     const protocol=document.querySelector("#summary .protocol");
     if(!protocol) throw new Error("NO_PROTOCOL");
@@ -393,8 +408,28 @@
       y+=6;
     }
 
+    const appliedTextBlocks=getAppliedTextBlocks();
+    const appendedText=appliedTextBlocks.map(item=>{
+      const path=textBlockPath(item);
+      return `${path ? path+"\n" : ""}${String(item?.content||"").trim()}`.trim();
+    }).filter(Boolean).join("\n\n");
+
+    let generalNotes=(document.getElementById("notes")?.value||"").trim();
+    if(appendedText && generalNotes.endsWith(appendedText)){
+      generalNotes=generalNotes.slice(0,generalNotes.length-appendedText.length).trim();
+    }
+
     sectionTitle("Allgemeine Bemerkungen");
-    await drawTextBox((document.getElementById("notes")?.value||"").trim(),"Keine weiteren Bemerkungen.");
+    await drawTextBox(generalNotes,"Keine weiteren Bemerkungen.");
+
+    if(appliedTextBlocks.length){
+      sectionTitle("Vereinbarungen & Textbausteine");
+      for(const item of appliedTextBlocks){
+        const content=String(item?.content||"").trim();
+        if(!content)continue;
+        await drawTextBox(content,"",textBlockPath(item)||"Vereinbarung");
+      }
+    }
 
     sectionTitle("Unterschriften");
     const signatureDate=formatDate(document.getElementById("signatureDate")?.value||"");
