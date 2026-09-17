@@ -1,0 +1,50 @@
+name: Load object-only transfer support
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-object-transfer-loader.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Add object transfer loader
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('business-tools.js')
+          s=p.read_text(encoding='utf-8')
+          marker='UEBERGABECHECK_OBJECT_TRANSFER_LOADER_V1'
+          if marker not in s:
+              s += '''\n\n/* UEBERGABECHECK_OBJECT_TRANSFER_LOADER_V1 */\n(function(){if(document.querySelector("script[data-uc-object-transfer]"))return;const e=document.createElement("script");e.src="object-transfer-support.js?v="+Date.now();e.async=false;e.dataset.ucObjectTransfer="1";document.head.appendChild(e);})();\n'''
+              p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Validate loader
+        run: |
+          test -s object-transfer-support.js
+          grep -q 'UEBERGABECHECK_OBJECT_TRANSFER_LOADER_V1' business-tools.js
+          grep -q 'object-transfer-support.js' business-tools.js
+
+      - name: Commit loader
+        run: |
+          if git diff --quiet -- business-tools.js; then
+            echo "Loader already installed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add business-tools.js
+          git commit -m "Load object-only transfer support"
+          git push origin main
