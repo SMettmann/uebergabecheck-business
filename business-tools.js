@@ -659,3 +659,7 @@
 
 /* UEBERGABECHECK_SETTINGS_LOADER_V1 */
 (function(){if(document.querySelector("script[data-uc-business-settings]"))return;const e=document.createElement("script");e.src="business-settings.js?v=20260917-2118";e.async=false;e.dataset.ucBusinessSettings="1";document.head.appendChild(e);})();
+
+
+/* UEBERGABECHECK_OBJECT_TRANSFER_LOADER_V1 */
+(function(){if(document.querySelector("script[data-uc-object-transfer]"))return;const e=document.createElement("script");e.src="object-transfer-support.js?v="+Date.now();e.async=false;e.dataset.ucObjectTransfer="1";document.head.appendChild(e);})();
