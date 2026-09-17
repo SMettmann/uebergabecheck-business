@@ -1,0 +1,46 @@
+name: Patch transfer overview delete
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-transfer-list-delete.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Add delete buttons to transfer overview
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('business-tools.js')
+          text=path.read_text(encoding='utf-8')
+          marker='UEBERGABECHECK_TRANSFER_OVERVIEW_DELETE_V1'
+          if marker in text:
+              raise SystemExit(0)
+
+          needle='''  function installWrappers(){\n    if(wrappersInstalled)return;\n    wrappersInstalled=true;\n\n'''
+          insert='''  // UEBERGABECHECK_TRANSFER_OVERVIEW_DELETE_V1\n  function addTransferOverviewDeleteButtons(){\n    const list=document.getElementById("businessTransfersList");\n    if(!list)return;\n    list.querySelectorAll(".transfer-item").forEach(item=>{\n      const actions=item.querySelector(".transfer-actions");\n      const openButton=actions?.querySelector('button[onclick*="openBusinessTransfer"]');\n      if(!actions||!openButton||actions.querySelector(".uc-transfer-delete"))return;\n      const onclick=String(openButton.getAttribute("onclick")||"");\n      const match=onclick.match(/openBusinessTransfer\\('([^']*)','([^']*)','([^']*)'\\)/);\n      if(!match)return;\n      const transferId=match[1], apartmentId=match[3];\n      const button=document.createElement("button");\n      button.type="button";\n      button.className="danger uc-transfer-delete";\n      button.textContent="Löschen";\n      button.addEventListener("click",async()=>{\n        if(typeof window.deleteBusinessTransfer!=="function")return;\n        await window.deleteBusinessTransfer(transferId,apartmentId);\n        if(typeof window.renderBusinessTransfers==="function")await window.renderBusinessTransfers();\n      });\n      actions.appendChild(button);\n    });\n  }\n\n  function installWrappers(){\n    if(wrappersInstalled)return;\n    wrappersInstalled=true;\n\n    const originalRenderBusinessTransfers=window.renderBusinessTransfers;\n    if(typeof originalRenderBusinessTransfers==="function"){\n      window.renderBusinessTransfers=async function(...args){\n        const result=await originalRenderBusinessTransfers.apply(this,args);\n        addTransferOverviewDeleteButtons();\n        return result;\n      };\n    }\n\n'''
+          if needle not in text:
+              raise SystemExit('installWrappers marker not found')
+          path.write_text(text.replace(needle,insert,1),encoding='utf-8')
+          PY
+
+      - name: Commit source change
+        run: |
+          if git diff --quiet -- business-tools.js; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add business-tools.js
+          git commit -m "Allow deleting transfers from overview"
+          git push origin main
