@@ -445,9 +445,43 @@
     setTimeout(()=>URL.revokeObjectURL(url),1500);
   }
 
+  // UEBERGABECHECK_TRANSFER_OVERVIEW_DELETE_V1
+  function addTransferOverviewDeleteButtons(){
+    const list=document.getElementById("businessTransfersList");
+    if(!list)return;
+    list.querySelectorAll(".transfer-item").forEach(item=>{
+      const actions=item.querySelector(".transfer-actions");
+      const openButton=actions?.querySelector('button[onclick*="openBusinessTransfer"]');
+      if(!actions||!openButton||actions.querySelector(".uc-transfer-delete"))return;
+      const onclick=String(openButton.getAttribute("onclick")||"");
+      const match=onclick.match(/openBusinessTransfer\('([^']*)','([^']*)','([^']*)'\)/);
+      if(!match)return;
+      const transferId=match[1], apartmentId=match[3];
+      const button=document.createElement("button");
+      button.type="button";
+      button.className="danger uc-transfer-delete";
+      button.textContent="Löschen";
+      button.addEventListener("click",async()=>{
+        if(typeof window.deleteBusinessTransfer!=="function")return;
+        await window.deleteBusinessTransfer(transferId,apartmentId);
+        if(typeof window.renderBusinessTransfers==="function")await window.renderBusinessTransfers();
+      });
+      actions.appendChild(button);
+    });
+  }
+
   function installWrappers(){
     if(wrappersInstalled)return;
     wrappersInstalled=true;
+
+    const originalRenderBusinessTransfers=window.renderBusinessTransfers;
+    if(typeof originalRenderBusinessTransfers==="function"){
+      window.renderBusinessTransfers=async function(...args){
+        const result=await originalRenderBusinessTransfers.apply(this,args);
+        addTransferOverviewDeleteButtons();
+        return result;
+      };
+    }
 
     const originalNavigate=window.navigateBusinessTab;
     if(typeof originalNavigate==="function"){
