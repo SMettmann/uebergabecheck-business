@@ -1,6 +1,13 @@
 name: Deploy Business to STRATO
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '*.html'
+      - '*.js'
+      - '*.css'
+      - 'assets/**'
   workflow_dispatch:
 
 permissions:
