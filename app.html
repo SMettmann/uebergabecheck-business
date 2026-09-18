@@ -534,9 +534,9 @@
 <div class="login-error hidden" id="passwordUpdateError"></div>
 </div>
 <div class="register-form" id="registrationForm">
-<div class="business-pill" style="margin-top:24px;">NEUES UNTERNEHMEN</div>
-<h2 style="font-size:24px;margin:0 0 8px;">Unternehmenskonto erstellen</h2>
-<p class="login-lead">Lege den Zugang für deine Hausverwaltung oder dein Unternehmen an.</p>
+<div class="business-pill" style="margin-top:24px;">14 TAGE KOSTENLOS</div>
+<h2 style="font-size:24px;margin:0 0 8px;">Kostenlosen Test starten</h2>
+<p class="login-lead">Erstelle dein Testkonto für ÜbergabeCheck Business. 14 Tage kostenlos, keine Zahlungsdaten erforderlich und keine automatische Verlängerung.</p>
 <form onsubmit="businessRegister(event)">
 <label for="companyName">Unternehmen</label>
 <input autocomplete="organization" id="companyName" placeholder="z. B. Müller Hausverwaltung GmbH" required="" type="text"/>
@@ -552,7 +552,7 @@
   <label class="legal-check"><input id="registrationB2B" required type="checkbox"/><span>Ich bestätige, dass ich als <strong>Unternehmer im Sinne des § 14 BGB</strong> handle, ÜbergabeCheck Business ausschließlich für meine gewerbliche oder selbständige berufliche Tätigkeit nutze und <strong>berechtigt bin, diese Vereinbarungen für das Unternehmen abzuschließen</strong>.</span></label>
   <label class="legal-check"><input id="registrationLegal" required type="checkbox"/><span>Ich akzeptiere die <button class="legal-inline-link" type="button" onclick="event.preventDefault();event.stopPropagation();openAGB()">AGB</button>, schließe den <button class="legal-inline-link" type="button" onclick="event.preventDefault();event.stopPropagation();openAVV()">Auftragsverarbeitungsvertrag (AVV)</button> ab und habe die <button class="legal-inline-link" type="button" onclick="event.preventDefault();event.stopPropagation();openDatenschutz()">Datenschutzerklärung</button> zur Kenntnis genommen.</span></label>
 </div>
-<button class="primary login-button" type="submit">Unternehmen registrieren →</button>
+<button class="primary login-button" type="submit">Kostenlosen Test starten →</button>
 </form>
 <div class="login-error hidden" id="registrationError"></div>
 <a class="back-login" onclick="showLogin()">← Zurück zum Login</a>
@@ -2036,7 +2036,9 @@ async function restoreSupabaseSession(){
   const { data } = await supabaseClient.auth.getSession();
   supabaseUser = data?.session?.user || null;
 
-  const resetMode=new URLSearchParams(window.location.search).get("reset-password")==="1";
+  const params=new URLSearchParams(window.location.search);
+  const resetMode=params.get("reset-password")==="1";
+  const registerMode=params.get("register")==="1";
   if(resetMode){
     showPasswordUpdateForm();
     return;
@@ -2044,6 +2046,11 @@ async function restoreSupabaseSession(){
 
   if(supabaseUser){
     showBusinessDashboard(supabaseUser);
+    return;
+  }
+
+  if(registerMode){
+    showRegistration();
   }
 }
 
