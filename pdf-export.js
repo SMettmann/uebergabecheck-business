@@ -432,6 +432,11 @@
       generalNotes=generalNotes.slice(0,generalNotes.length-appendedText.length).trim();
     }
 
+    if(window.currentBusinessTransferType==="Wohnungsrücknahme"){
+      sectionTitle("Offene Arbeiten / Vereinbarungen");
+      await drawTextBox((document.getElementById("returnAgreements")?.value||"").trim(),"Keine offenen Arbeiten oder Vereinbarungen dokumentiert.");
+    }
+
     sectionTitle("Allgemeine Bemerkungen");
     await drawTextBox(generalNotes,"Keine weiteren Bemerkungen.");
 
