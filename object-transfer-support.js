@@ -14,6 +14,91 @@
     return [object.street,place].filter(Boolean).join(", ");
   }
 
+  async function loadPreviousHandoverDefaults(object,apartment){
+    if(!supabaseClient||!object)return null;
+    try{
+      let query=supabaseClient
+        .from("transfers")
+        .select("id,type,data,created_at")
+        .eq("object_id",object.id)
+        .order("created_at",{ascending:false})
+        .limit(1);
+
+      if(apartment){
+        query=query.eq("apartment_id",apartment.id).eq("type","Wohnungsübergabe");
+      }else{
+        query=query.is("apartment_id",null).eq("type","Objektübergabe");
+      }
+
+      const {data:rows,error}=await query;
+      if(error){
+        console.error("Vorherige Übergabe laden:",error);
+        return null;
+      }
+
+      const previous=(rows||[])[0]||null;
+      if(!previous?.data)return null;
+
+      let snapshot=previous.data;
+      if(typeof snapshot==="string"){
+        try{snapshot=JSON.parse(snapshot);}catch(_error){return null;}
+      }
+      if(snapshot?.data&&typeof snapshot.data==="object"&&!snapshot.fields)snapshot=snapshot.data;
+
+      const fields=snapshot?.fields||{};
+      return {
+        transferId:previous.id,
+        selectedRooms:Array.isArray(snapshot?.selectedRooms)?snapshot.selectedRooms.filter(Boolean):[],
+        customRooms:Array.isArray(snapshot?.customRooms)?snapshot.customRooms.filter(Boolean):[],
+        meterNumbers:{
+          electricNo:String(fields.electricNo||""),
+          waterNo:String(fields.waterNo||""),
+          gasNo:String(fields.gasNo||"")
+        }
+      };
+    }catch(error){
+      console.error("Vorherige Übergabe übernehmen:",error);
+      return null;
+    }
+  }
+
+  function applyPreviousHandoverDefaults(defaults){
+    if(!defaults)return false;
+
+    if(defaults.selectedRooms.length){
+      selectedRooms=[...defaults.selectedRooms];
+      const derivedCustom=selectedRooms.filter(room=>!(baseRoomNames||[]).includes(room));
+      customRooms=Array.from(new Set([...(defaults.customRooms||[]),...derivedCustom]));
+
+      roomData={};
+      selectedRooms.forEach(room=>{
+        roomData[room]={
+          state:"ok",
+          description:"",
+          photos:[],
+          defectStatus:"open",
+          defectNote:""
+        };
+      });
+      currentRoom=selectedRooms[0]||"Flur";
+      currentState="ok";
+      photoURLs=[];
+      if(typeof renderRooms==="function")renderRooms();
+      if(typeof updateCustomRoomNote==="function")updateCustomRoomNote();
+    }
+
+    Object.entries(defaults.meterNumbers||{}).forEach(([id,value])=>{
+      const input=document.getElementById(id);
+      if(input&&value){
+        input.value=value;
+        input.dispatchEvent(new Event("input",{bubbles:true}));
+      }
+    });
+
+    if(typeof saveDraft==="function")saveDraft();
+    return defaults.selectedRooms.length>0||Object.values(defaults.meterNumbers||{}).some(Boolean);
+  }
+
   window.startBusinessTransfer=function(){
     if(!requireBusinessWriteAccess())return;
     const modal=document.getElementById("transferStartModal");
@@ -79,6 +164,10 @@
     }
 
     const isReturn=transferMode==="Wohnungsrücknahme";
+    const previousHandoverDefaults=isReturn
+      ? await loadPreviousHandoverDefaults(object,apartment)
+      : null;
+
     const payload={
       object_id:object.id,
       apartment_id:apartment?.id||null,
@@ -121,6 +210,20 @@
     await updateBusinessStats();
     await updateObjectDetailStats();
     startApp();
+
+    if(isReturn&&previousHandoverDefaults){
+      const imported=applyPreviousHandoverDefaults(previousHandoverDefaults);
+      if(imported){
+        const context=document.getElementById("transferContext");
+        if(context&&!context.querySelector(".return-import-note")){
+          const note=document.createElement("span");
+          note.className="return-import-note";
+          note.style.cssText="font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;color:#666;margin-left:auto;";
+          note.textContent="Räume & Zählernummern aus letzter Übergabe übernommen";
+          context.appendChild(note);
+        }
+      }
+    }
 
     const addressInput=document.getElementById("address");
     if(addressInput&&!addressInput.value){
