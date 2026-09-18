@@ -16,7 +16,7 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Sego
 .section-label{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:18px 2px 9px}.section-label h2{margin:0;font-size:14px;letter-spacing:-.2px}.section-label span{font-size:10px;color:#8b8d92}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.kpi{background:#fff;border:1px solid #e1e2e5;border-radius:16px;padding:16px}.kpi span{display:block;font-size:11px;color:#777;margin-bottom:7px}.kpi strong{font-size:26px}.kpi.business strong{font-size:30px}.kpi.active strong{color:#27683b}.kpi.trial strong{color:#8a6517}.kpi.inactive strong{color:#8f3333}
 .toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#fff;border:1px solid #e1e2e5;border-radius:16px;padding:10px;margin-bottom:14px}.filters{display:flex;gap:6px;flex-wrap:wrap}.filter{border:0;background:#f1f2f4;color:#555;border-radius:9px;padding:8px 11px;font:inherit;font-size:11px;font-weight:850;cursor:pointer}.filter.active{background:#111;color:#fff}.search{width:min(320px,100%);padding:9px 11px;border:1px solid #ddd;border-radius:10px;font:inherit;font-size:12px}
-.card{background:#fff;border:1px solid #e1e2e5;border-radius:18px;padding:16px;box-shadow:0 3px 14px rgba(0,0,0,.025);margin-bottom:14px}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:1080px}.companies-table{min-width:920px}.table th,.table td{text-align:left;padding:11px 9px;border-bottom:1px solid #eee;vertical-align:top}.table th{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em}.table td{font-size:12px}.table tr:last-child td{border-bottom:0}.company strong,.subject strong{display:block;margin-bottom:3px}.company small,.subject small{color:#888}.details{max-width:330px;white-space:pre-wrap;line-height:1.45;color:#555}
+.card{background:#fff;border:1px solid #e1e2e5;border-radius:18px;padding:16px;box-shadow:0 3px 14px rgba(0,0,0,.025);margin-bottom:14px}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:1080px}.companies-table{min-width:1220px}.table th,.table td{text-align:left;padding:11px 9px;border-bottom:1px solid #eee;vertical-align:top}.table th{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em}.table td{font-size:12px}.table tr:last-child td{border-bottom:0}.company strong,.subject strong{display:block;margin-bottom:3px}.company small,.subject small{color:#888}.details{max-width:330px;white-space:pre-wrap;line-height:1.45;color:#555}
 .pill{display:inline-block;font-size:10px;font-weight:850;padding:6px 8px;border-radius:999px;background:#f0f1f3;white-space:nowrap}.pill.error{background:#ffe9e9;color:#8f3333}.pill.idea{background:#eef0ff;color:#4e5496}.pill.work{background:#fff4d9;color:#7c5b13}.pill.done{background:#e9f5ec;color:#27683b}.pill.trial{background:#fff4d9;color:#7c5b13}.pill.inactive{background:#ffe9e9;color:#8f3333}
 .status-select{min-width:135px;border:1px solid #d8d9dd;background:#fff;border-radius:9px;padding:8px;font:inherit;font-size:11px}.reply{width:220px;min-height:68px;border:1px solid #d8d9dd;border-radius:9px;padding:8px;font:inherit;font-size:11px;resize:vertical}.row-actions{display:flex;gap:6px;flex-direction:column;min-width:105px}.row-actions button{border:0;border-radius:8px;padding:8px 9px;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.save{background:#111;color:#fff}.archive{background:#ececef;color:#333}.restore{background:#e9f5ec;color:#27683b}
 .empty{padding:30px;text-align:center;color:#777;font-size:13px}.denied{max-width:560px;margin:70px auto;background:#fff;border:1px solid #ddd;border-radius:20px;padding:28px;text-align:center}.denied h2{margin-top:0}.hidden{display:none!important}
@@ -119,6 +119,7 @@ const terminal=x=>x.category==="verbesserung"?["umgesetzt","abgelehnt"].includes
 const companyStatusLabel=v=>({active:"Aktiv",trial:"Testphase",inactive:"Inaktiv",canceled:"Gekündigt",cancelled:"Gekündigt",past_due:"Zahlung offen"}[v]||v||"Ohne Status");
 const companyStatusClass=v=>v==="active"?"done":v==="trial"?"trial":(["inactive","canceled","cancelled","past_due"].includes(v)?"inactive":"");
 const planLabel=v=>({business_monthly:"Business"}[v]||v||"–");
+const usageNumber=v=>v==null?"–":Number(v).toLocaleString("de-DE");
 
 function statusOptions(x){
   const list=x.category==="verbesserung"
@@ -155,11 +156,12 @@ function renderCompanies(){
     return !q||hay.includes(q);
   });
   if(!list.length){target.innerHTML='<div class="empty">Keine passenden Unternehmen.</div>';return;}
-  target.innerHTML=`<table class="table companies-table"><thead><tr><th>Unternehmen</th><th>Ansprechpartner</th><th>E-Mail</th><th>Ort</th><th>Angemeldet</th><th>Status</th><th>Tarif</th><th>Nutzer</th></tr></thead><tbody>${list.map(x=>{
+  target.innerHTML=`<table class="table companies-table"><thead><tr><th>Unternehmen</th><th>Ansprechpartner</th><th>E-Mail</th><th>Ort</th><th>Angemeldet</th><th>Status</th><th>Tarif</th><th>Nutzer</th><th>Objekte</th><th>Wohnungen</th><th>Übergaben</th><th>Letzte Aktivität</th></tr></thead><tbody>${list.map(x=>{
     const s=x.subscription||{};
     const email=x.email||x.members.find(m=>m.email)?.email||"–";
     const extra=s.status==="trial"&&s.trial_ends_at?`<small>bis ${esc(fmtDate(s.trial_ends_at))}</small>`:"";
-    return `<tr><td class="company"><strong>${esc(x.name||'Unbekannt')}</strong><small>${esc(x.id)}</small></td><td>${esc(x.contact_name||'–')}</td><td>${esc(email)}</td><td>${esc(x.city||'–')}</td><td>${esc(fmt(x.created_at))}</td><td><span class="pill ${companyStatusClass(s.status)}">${esc(companyStatusLabel(s.status))}</span>${extra}</td><td>${esc(planLabel(s.plan_code))}</td><td><strong>${x.members.length}</strong></td></tr>`;
+    const u=x.usage||{};
+    return `<tr><td class="company"><strong>${esc(x.name||'Unbekannt')}</strong><small>${esc(x.id)}</small></td><td>${esc(x.contact_name||'–')}</td><td>${esc(email)}</td><td>${esc(x.city||'–')}</td><td>${esc(fmt(x.created_at))}</td><td><span class="pill ${companyStatusClass(s.status)}">${esc(companyStatusLabel(s.status))}</span>${extra}</td><td>${esc(planLabel(s.plan_code))}</td><td><strong>${x.members.length}</strong></td><td><strong>${usageNumber(u.objects_count)}</strong></td><td><strong>${usageNumber(u.apartments_count)}</strong></td><td><strong>${usageNumber(u.transfers_count)}</strong></td><td>${esc(fmt(u.last_activity_at))}</td></tr>`;
   }).join("")}</tbody></table>`;
 }
 
@@ -187,20 +189,22 @@ async function loadBusinessStats(){
 async function loadCompanies(){
   const target=document.getElementById("companyList");
   target.innerHTML='<div class="empty">Wird geladen …</div>';
-  const [companies,subscriptions,members]=await Promise.all([
+  const [companies,subscriptions,members,usage]=await Promise.all([
     client.from("companies").select("id,name,contact_name,email,city,created_at").order("created_at",{ascending:false}),
     client.from("company_subscriptions").select("company_id,status,plan_code,trial_ends_at,current_period_end"),
-    client.from("company_members").select("company_id,user_id,display_name,email,role")
+    client.from("company_members").select("company_id,user_id,display_name,email,role"),
+    client.rpc("admin_company_usage_stats")
   ]);
-  if(companies.error||subscriptions.error||members.error){
-    console.error(companies.error||subscriptions.error||members.error);
+  if(companies.error||subscriptions.error||members.error||usage.error){
+    console.error(companies.error||subscriptions.error||members.error||usage.error);
     target.innerHTML='<div class="empty">Unternehmen konnten nicht geladen werden.</div>';
     return;
   }
   const subMap=new Map((subscriptions.data||[]).map(x=>[x.company_id,x]));
   const memberMap=new Map();
   for(const m of members.data||[]){if(!memberMap.has(m.company_id))memberMap.set(m.company_id,[]);memberMap.get(m.company_id).push(m);}
-  companyRows=(companies.data||[]).map(c=>({...c,subscription:subMap.get(c.id)||null,members:memberMap.get(c.id)||[]}));
+  const usageMap=new Map((usage.data||[]).map(x=>[x.company_id,x]));
+  companyRows=(companies.data||[]).map(c=>({...c,subscription:subMap.get(c.id)||null,members:memberMap.get(c.id)||[],usage:usageMap.get(c.id)||{objects_count:0,apartments_count:0,transfers_count:0,last_activity_at:null}}));
   renderCompanies();
 }
 
