@@ -20,14 +20,18 @@
       let query=supabaseClient
         .from("transfers")
         .select("id,type,data,created_at")
-        .eq("object_id",object.id)
         .order("created_at",{ascending:false})
         .limit(1);
 
       if(apartment){
-        query=query.eq("apartment_id",apartment.id).eq("type","Wohnungsübergabe");
+        query=query
+          .eq("apartment_id",apartment.id)
+          .in("type",["Wohnungsübergabe","Objektübergabe"]);
       }else{
-        query=query.is("apartment_id",null).eq("type","Objektübergabe");
+        query=query
+          .eq("object_id",object.id)
+          .is("apartment_id",null)
+          .in("type",["Objektübergabe","Wohnungsübergabe"]);
       }
 
       const {data:rows,error}=await query;
