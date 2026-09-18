@@ -56,7 +56,7 @@
   }
   @media print{
     body{background:#fff}
-    header,.hero,.actions,.no-print{display:none!important}
+    header,.hero,.actions,.no-print,#transferContext{display:none!important}
     .app{max-width:none;padding:0}
     .card{box-shadow:none;border:0;padding:0;margin:0 0 20px}
   }
@@ -916,7 +916,7 @@
 <p>Dokumentiere Räume, Mängel, Zählerstände und Schlüssel Schritt für Schritt. Am Ende entsteht ein übersichtliches Übergabeprotokoll.</p>
 <div class="progress" id="progress"></div>
 </section>
-<div class="transfer-context" id="transferContext"><span>Aktueller Vorgang</span><strong id="transferContextLabel">Übergabe / Einzug</strong></div>
+<div class="transfer-context no-print" id="transferContext"><span>Aktueller Vorgang</span><strong id="transferContextLabel">Übergabe / Einzug</strong></div>
 <section class="card" id="step1">
 <h2 id="step1Title">1. Grunddaten</h2>
 <div class="sub" id="step1Sub">Ein paar Angaben zum Start.</div>
@@ -1322,6 +1322,11 @@ function go(step){
   saveDraft();
   document.querySelectorAll('[id^="step"]').forEach(x=>x.classList.add("hidden"));
   document.getElementById("step"+step).classList.remove("hidden");
+
+  // Die Vorgangsanzeige gehört nur zur Bedienoberfläche, niemals ins Protokoll.
+  const transferContext=document.getElementById("transferContext");
+  if(transferContext) transferContext.style.display=step===5?"none":"flex";
+
   renderProgress(step);
   if(step===2) renderRooms();
   if(step===3){fillRoomSelect();loadRoom();}
