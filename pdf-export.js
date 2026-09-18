@@ -52,11 +52,23 @@
       .slice(0,90);
   }
 
+  function transferPdfWording(){
+    const isReturn=window.currentBusinessTransferType==="Wohnungsrücknahme";
+    return {
+      kicker:isReturn?"WOHNUNGSRÜCKNAHME · BUSINESS":"WOHNUNGSÜBERGABE · BUSINESS",
+      title:isReturn?"Rücknahmeprotokoll":"Übergabeprotokoll",
+      overview:isReturn?"Rücknahmeübersicht":"Übergabeübersicht",
+      keys:isReturn?"Schlüsselrückgabe":"Schlüsselübergabe",
+      fileLabel:isReturn?"Ruecknahmeprotokoll":"Uebergabeprotokoll"
+    };
+  }
+
   function protocolPdfFilename(){
+    const wording=transferPdfWording();
     const address=safeFilePart(document.getElementById("address")?.value||"");
     const date=safeFilePart(document.getElementById("date")?.value||"");
-    const suffix=[address,date].filter(Boolean).join("-")||"Uebergabeprotokoll";
-    return `UebergabeCheck-Business-${suffix}.pdf`;
+    const suffix=[address,date].filter(Boolean).join("-");
+    return `UebergabeCheck-Business-${wording.fileLabel}${suffix?"-"+suffix:""}.pdf`;
   }
 
   function dataUrlToJpeg(dataUrl,maxPx=1600,quality=.88){
@@ -117,6 +129,7 @@
   async function createProtocolPdfBlob(){
     const protocol=document.querySelector("#summary .protocol");
     if(!protocol) throw new Error("NO_PROTOCOL");
+    const wording=transferPdfWording();
 
     const jsPDF=await loadJsPdfLibrary();
     const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true,putOnlyUsedFonts:true});
@@ -306,10 +319,10 @@
     }
 
     setText(7.5,"bold",MUTED);
-    doc.text("WOHNUNGSÜBERGABE · BUSINESS",M,y+2.5);
+    doc.text(wording.kicker,M,y+2.5);
     y+=7;
     setText(24,"bold");
-    doc.text("Übergabeprotokoll",M,y+8);
+    doc.text(wording.title,M,y+8);
     y+=13;
 
     const addressLines=split(address,CONTENT_W,11.5,"normal");
@@ -334,7 +347,7 @@
     doc.line(M,y,M+CONTENT_W,y);
     y+=8;
 
-    sectionTitle("Übergabeübersicht");
+    sectionTitle(wording.overview);
     const rooms=Array.isArray(selectedRooms)?selectedRooms:[];
     const photos=rooms.reduce((total,room)=>total+((roomData?.[room]?.photos||[]).length),0);
     const meterCount=["electric","water","gas"].filter(id=>(document.getElementById(id)?.value||"").trim()).length;
@@ -374,7 +387,7 @@
       y+=5;
     }
 
-    sectionTitle("Schlüsselübergabe");
+    sectionTitle(wording.keys);
     await drawTextBox((document.getElementById("keys")?.value||"").trim(),"Keine Angaben dokumentiert.");
 
     sectionTitle("Räume & Zustand");
