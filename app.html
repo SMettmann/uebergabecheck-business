@@ -4305,22 +4305,55 @@ function startApp(){
 
   try{
     clearDraft();
+
+    // Jeder neue Vorgang startet wirklich leer.
+    // Nur der Vermieter aus den Unternehmenseinstellungen wird neu vorbelegt.
+    const freshFieldIds=[
+      "address","date","tenant","landlord",
+      "electricNo","electric","waterNo","water","gasNo","gas",
+      "keys","returnAgreements","notes",
+      "tenantSignaturePlace","landlordSignaturePlace","signatureDate"
+    ];
+    freshFieldIds.forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.value="";
+    });
+
+    storedSignatures={tenant:"",landlord:""};
+    storedSignatureDetails={tenantPlace:"",landlordPlace:"",date:""};
+    ["sigTenant","sigLandlord"].forEach(id=>{
+      const canvas=document.getElementById(id);
+      if(canvas){
+        const ctx=canvas.getContext("2d");
+        if(ctx) ctx.clearRect(0,0,canvas.width,canvas.height);
+      }
+    });
+
+    document.querySelector("#transferContext .return-import-note")?.remove();
+
     selectedRooms=["Flur","Wohnzimmer","Schlafzimmer","Küche","Badezimmer"];
     roomData={};
     customRooms=[];
+    currentRoom=selectedRooms[0];
+    currentState="ok";
+    photoURLs=[];
     meterPhotos={electric:[],water:[],gas:[]};
+
+    if(typeof renderRooms==="function") renderRooms();
+    if(typeof updateCustomRoomNote==="function") updateCustomRoomNote();
+    if(typeof renderAllMeterPhotos==="function") renderAllMeterPhotos();
 
     if (window.umami) window.umami.track("Uebergabe gestartet");
     renderProgress(1);
     addAutosaveListeners();
 
     const dateInput=document.getElementById("date");
-    if(dateInput && !dateInput.value){
+    if(dateInput){
       dateInput.value=new Date().toISOString().slice(0,10);
     }
     const landlordInput=document.getElementById("landlord");
-    if(landlordInput && !landlordInput.value && businessCompanyProfile?.name){
-      landlordInput.value=businessCompanyProfile.name;
+    if(landlordInput){
+      landlordInput.value=businessCompanyProfile?.name||"";
     }
     applyTransferTypeUi();
   }catch(error){
