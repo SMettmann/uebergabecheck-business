@@ -365,7 +365,7 @@
   .transfer-type-option small{display:block;color:#777;font-size:12px;line-height:1.35}
   .transfer-context{position:sticky;top:12px;z-index:70;display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px;padding:10px 14px;background:rgba(255,255,255,.96);border:1px solid #dedfe3;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.06);backdrop-filter:blur(8px)}
   .transfer-context span{font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#777}
-  .transfer-context strong{font-size:14px}
+  .transfer-context strong{font-size:14px}\n  #step5:not(.hidden) ~ #transferContext{display:none!important}
   @media(max-width:560px){.transfer-type-options{grid-template-columns:1fr}.transfer-context{top:8px}}
   .transfer-start-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}
   .transfer-start-actions button{border:0;border-radius:12px;padding:12px 17px;font:inherit;cursor:pointer}
@@ -1245,7 +1245,10 @@ function go(step){
 
   // Die Vorgangsanzeige gehört nur zur Bedienoberfläche, niemals ins Protokoll.
   const transferContext=document.getElementById("transferContext");
-  if(transferContext) transferContext.style.display=step===5?"none":"flex";
+  if(transferContext){
+    transferContext.classList.toggle("hidden",step===5);
+    transferContext.style.display=step===5?"none":"flex";
+  }
 
   renderProgress(step);
   if(step===2) renderRooms();
