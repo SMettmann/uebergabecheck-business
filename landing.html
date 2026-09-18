@@ -39,7 +39,7 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Sego
 .hero-trial{margin-top:18px;padding:12px 13px;background:rgba(255,255,255,.58);border:1px solid rgba(17,17,17,.12);border-radius:12px;font-size:12.5px;line-height:1.45;font-weight:850;text-align:center}
 .hero-offer .btn{width:100%;margin-top:12px}
 
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
 .card{background:#fff;border:1px solid #e2e3e6;border-radius:18px;padding:21px;box-shadow:0 4px 16px rgba(0,0,0,.025)}
 .card strong{display:block;font-size:15px;margin-bottom:7px}.card span{display:block;color:#777;font-size:13px;line-height:1.5}
 
@@ -89,67 +89,61 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Sego
 
   <main class="hero">
     <div class="hero-copy">
-      <div class="pill">BUSINESS · FÜR UNTERNEHMEN</div>
+      <div class="pill">BUSINESS · FÜR VERWALTUNGEN &amp; VERMIETER</div>
       <h1>Übergaben &amp; Rücknahmen verwalten.<br><em>Alles an einem Ort.</em></h1>
       <p class="lead">Objekte, Wohnungen, Übergaben, Rücknahmen und Mängel zentral verwalten. ÜbergabeCheck Business verbindet die digitale Dokumentation mit einer übersichtlichen Verwaltungsoberfläche.</p>
       <div class="actions">
-        <a class="btn primary" href="app.html?register=1">14 Tage kostenlos testen →</a>
-        <a class="btn secondary" href="#preis">Alle Leistungen ansehen</a>
+        <a class="btn primary" href="#funktionen">Business kennenlernen →</a>
       </div>
     </div>
 
     <aside class="hero-offer">
-      <div class="hero-offer-label">KLARER FESTPREIS</div>
+      <div class="hero-offer-label">FESTPREIS</div>
       <div class="hero-price">29,99 € <small>/ Monat</small></div>
       <div class="hero-price-copy">Unabhängig davon, wie viele Übergaben oder Rücknahmen du durchführst.</div>
       <ul>
         <li>Unbegrenzte Objekte &amp; Wohnungen</li>
         <li>Inhaber + bis zu 10 Mitarbeiter inklusive</li>
-        <li>Gespeicherte Übergaben &amp; Rücknahmen jederzeit abrufbar</li>
+        <li>14 Tage Testphase ohne automatische Verlängerung</li>
       </ul>
-      <div class="hero-trial">14 Tage kostenlos · keine Zahlungsdaten für den Test · keine automatische Verlängerung</div>
-      <a class="btn primary" href="app.html?register=1">Jetzt kostenlos testen →</a>
     </aside>
   </main>
 
-  <div class="grid">
-    <div class="card"><strong>Objekte verwalten</strong><span>Gebäude und Liegenschaften übersichtlich anlegen und organisieren.</span></div>
-    <div class="card"><strong>Wohnungen zuordnen</strong><span>Einheiten direkt den passenden Objekten zuweisen.</span></div>
-    <div class="card"><strong>Übergaben &amp; Rücknahmen speichern</strong><span>Vorgänge dauerhaft je Wohnung dokumentieren und wieder öffnen.</span></div>
-    <div class="card"><strong>Mängel im Blick behalten</strong><span>Festgestellte Mängel zentral anzeigen und weiterverfolgen.</span></div>
+  <div class="grid" id="funktionen">
+    <div class="card"><strong>Bestand zentral verwalten</strong><span>Objekte und Wohnungen strukturiert anlegen und jederzeit wiederfinden.</span></div>
+    <div class="card"><strong>Vorgänge nachvollziehbar dokumentieren</strong><span>Übergaben und Rücknahmen dauerhaft je Einheit speichern und wieder öffnen.</span></div>
+    <div class="card"><strong>Mängel &amp; Nachweise im Blick behalten</strong><span>Fotos, Zustände, Unterschriften und offene Mängel zentral zusammenführen.</span></div>
   </div>
 
   <section class="pricing" id="preis">
     <div>
-      <div class="pricing-kicker">Ein Tarif. Alles drin.</div>
+      <div class="pricing-kicker">Ein Tarif. Klare Konditionen.</div>
       <h2>ÜbergabeCheck Business</h2>
       <p class="pricing-copy">Für Hausverwaltungen, Vermieter und Unternehmen, die Wohnungsübergaben und -rücknahmen dauerhaft digital organisieren möchten.</p>
       <div class="price">29,99 € <small>/ Monat</small></div>
       <div class="price-sub">Fester Preis – unabhängig von der Anzahl der Übergaben und Rücknahmen.</div>
-      <div class="trial">14 Tage kostenlos testen · keine Zahlungsdaten erforderlich · keine automatische Verlängerung</div>
+      <div class="trial">14 Tage Testphase · keine Zahlungsdaten erforderlich · keine automatische Verlängerung</div>
       <div class="pricing-actions">
-        <a class="btn primary" href="app.html?register=1">14 Tage kostenlos testen →</a>
+        <a class="btn primary" href="app.html?register=1">Testzugang anlegen →</a>
         <div class="pricing-note">Danach nur bei aktiver Buchung 29,99 € / Monat.<br>Jederzeit zum Ende des Abrechnungszeitraums kündbar.</div>
       </div>
     </div>
     <div class="pricing-list-wrap">
       <ul class="pricing-list">
         <li>Unbegrenzte Objekte &amp; Wohnungen</li>
-        <li>Digitale Übergabe- &amp; Rücknahmeprotokolle</li>
-        <li>Fotos &amp; Mängeldokumentation</li>
+        <li>Übergaben &amp; Rücknahmen mit Fotos und Mängeln</li>
         <li>Digitale Unterschriften</li>
         <li>PDF-Export &amp; E-Mail-Versand</li>
         <li>Eigener Firmenbriefkopf</li>
-        <li>Teamverwaltung mit Rollen</li>
         <li>Inhaber + bis zu 10 Mitarbeiter</li>
-        <li>Gespeicherte vergangene Vorgänge</li>
+        <li>Gespeicherte Vorgangshistorie</li>
       </ul>
     </div>
   </section>
 
   <section class="section">
-    <div><h2>Die kostenlose Version bleibt kostenlos.</h2><p>Für einzelne private Wohnungsübergaben kannst du weiterhin die kostenlose Version nutzen. Business ist für regelmäßige Übergaben und Rücknahmen sowie die zentrale Verwaltung gedacht.</p></div>
-    <a class="btn secondary" href="../">Kostenlose Version öffnen →</a>
+    <div><h2>Privat nutzen oder professionell verwalten.</h2><p>Für einzelne private Wohnungsübergaben bleibt die Privatversion kostenfrei. Business ist für regelmäßige Übergaben, Rücknahmen und die zentrale Verwaltung gedacht.</p></div>
+    <a class="btn secondary" href="../">Zur Privatversion →</a>
   </section>
 
   <section class="contact" id="kontakt">
