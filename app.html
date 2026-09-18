@@ -4046,9 +4046,23 @@ async function deleteBusinessTransfer(transferId, apartmentId){
     window.currentBusinessTransferId=null;
   }
 
-  await renderApartmentTransfers();
-  updateBusinessStats();
-  if(selectedBusinessObjectId!==null) await updateObjectDetailStats();
+  // Alle sichtbaren Listen sofort nach erfolgreichem Löschen neu zeichnen.
+  // So verschwindet der Vorgang direkt aus Dashboard, Vorgangsliste und Wohnungsansicht.
+  if(apartmentId && typeof renderApartmentTransfers==="function"){
+    await renderApartmentTransfers();
+  }
+  if(typeof renderBusinessTransfers==="function"){
+    await renderBusinessTransfers();
+  }
+  if(typeof renderDashboardCurrentTransfers==="function"){
+    await renderDashboardCurrentTransfers();
+  }
+  if(typeof updateBusinessStats==="function"){
+    await updateBusinessStats();
+  }
+  if(selectedBusinessObjectId!==null && typeof updateObjectDetailStats==="function"){
+    await updateObjectDetailStats();
+  }
 }
 
 async function openBusinessTransfer(transferId, objectId, apartmentId){
