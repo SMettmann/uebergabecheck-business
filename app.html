@@ -918,12 +918,12 @@
 </section>
 <div class="transfer-context" id="transferContext"><span>Aktueller Vorgang</span><strong id="transferContextLabel">Übergabe / Einzug</strong></div>
 <section class="card" id="step1">
-<h2>1. Grunddaten</h2>
-<div class="sub">Ein paar Angaben zum Start.</div>
+<h2 id="step1Title">1. Grunddaten</h2>
+<div class="sub" id="step1Sub">Ein paar Angaben zum Start.</div>
 <div class="grid">
 <div><label>Adresse</label><input id="address" placeholder="z. B. Musterstraße 12, 89518 Heidenheim"/></div>
 <div><label>Datum</label><input id="date" type="date"/></div>
-<div><label>Mieter</label><input id="tenant" placeholder="Vor- und Nachname"/></div>
+<div><label id="tenantLabel">Mieter</label><input id="tenant" placeholder="Vor- und Nachname"/></div>
 <div><label>Vermieter</label><input id="landlord" placeholder="Vor- und Nachname"/></div>
 </div>
 <div class="actions">
@@ -936,7 +936,7 @@
 </section>
 <section class="card hidden" id="step2">
 <h2>2. Räume</h2>
-<div class="sub">Welche Räume möchtest du dokumentieren?</div>
+<div class="sub" id="step2Sub">Welche Räume möchtest du dokumentieren?</div>
 <div class="room-grid" id="rooms"></div>
 <div class="custom-room-area">
 <div class="custom-room-row">
@@ -948,7 +948,7 @@
 </section>
 <section class="card hidden" id="step3">
 <h2>3. Raum dokumentieren</h2>
-<div class="sub">Wähle einen Raum und halte den Zustand fest.</div>
+<div class="sub" id="step3Sub">Wähle einen Raum und halte den Zustand fest.</div>
 <div class="grid">
 <div>
 <label>Raum</label>
@@ -980,7 +980,7 @@
 </section>
 <section class="card hidden" id="step4">
 <h2>4. Zähler &amp; Schlüssel</h2>
-<div class="sub">Nur eintragen, was vorhanden ist.</div>
+<div class="sub" id="step4Sub">Nur eintragen, was vorhanden ist.</div>
 <div class="grid">
 <div>
 <label>Strom – Zählernummer</label>
@@ -1022,8 +1022,12 @@
 </div>
 </div>
 </div>
-<label>Schlüssel</label>
+<label id="keysLabel">Schlüssel</label>
 <textarea id="keys" placeholder="z. B. 2 Wohnungsschlüssel, 2 Haustürschlüssel, 1 Briefkastenschlüssel"></textarea>
+<div id="returnAgreementsBlock" class="hidden">
+<label>Offene Arbeiten / Vereinbarungen</label>
+<textarea id="returnAgreements" placeholder="z. B. Nachreinigung vereinbart, Gegenstand wird bis 25.09. entfernt, Schlüssel wird nachgereicht"></textarea>
+</div>
 <label>Allgemeine Bemerkungen</label>
 <textarea id="notes" placeholder="Sonstige Hinweise zur Übergabe"></textarea>
 <div class="actions"><button class="secondary" onclick="go(3)">Zurück</button><button class="primary" onclick="showSummary()">Protokoll anzeigen</button></div>
@@ -1245,6 +1249,27 @@ function applyTransferTypeUi(){
   const wording=getTransferWording();
   const label=document.getElementById("transferContextLabel");
   if(label) label.textContent=wording.shortLabel;
+
+  const step1Title=document.getElementById("step1Title");
+  const step1Sub=document.getElementById("step1Sub");
+  const step2Sub=document.getElementById("step2Sub");
+  const step3Sub=document.getElementById("step3Sub");
+  const step4Sub=document.getElementById("step4Sub");
+  const tenantLabel=document.getElementById("tenantLabel");
+  const keysLabel=document.getElementById("keysLabel");
+  const keys=document.getElementById("keys");
+  const returnBlock=document.getElementById("returnAgreementsBlock");
+
+  if(step1Title) step1Title.textContent=wording.isReturn?"1. Grunddaten zur Rücknahme":"1. Grunddaten zur Übergabe";
+  if(step1Sub) step1Sub.textContent=wording.isReturn?"Angaben zur Wohnungsabnahme und Rückgabe.":"Angaben zur Wohnungsübergabe und zum Einzug.";
+  if(step2Sub) step2Sub.textContent=wording.isReturn?"Welche Räume werden bei der Rücknahme geprüft?":"Welche Räume möchtest du bei der Übergabe dokumentieren?";
+  if(step3Sub) step3Sub.textContent=wording.isReturn?"Dokumentiere den Zustand bei Rückgabe und halte Abweichungen oder Schäden fest.":"Dokumentiere den Zustand bei Übergabe und halte vorhandene Mängel fest.";
+  if(step4Sub) step4Sub.textContent=wording.isReturn?"Zählerstände bei Auszug erfassen und zurückgegebene Schlüssel dokumentieren.":"Zählerstände erfassen und übergebene Schlüssel dokumentieren.";
+  if(tenantLabel) tenantLabel.textContent=wording.isReturn?"Ausziehender Mieter":"Mieter";
+  if(keysLabel) keysLabel.textContent=wording.isReturn?"Zurückgegebene Schlüssel":"Übergebene Schlüssel";
+  if(keys) keys.placeholder=wording.isReturn?"z. B. 2 Wohnungsschlüssel, 2 Haustürschlüssel, 1 Briefkastenschlüssel zurückgegeben":"z. B. 2 Wohnungsschlüssel, 2 Haustürschlüssel, 1 Briefkastenschlüssel übergeben";
+  if(returnBlock) returnBlock.classList.toggle("hidden",!wording.isReturn);
+
   const step5Title=document.getElementById("step5Title");
   if(step5Title) step5Title.textContent="5. "+wording.protocolTitle;
   const saveButton=document.getElementById("saveTransferOnlyButton");
@@ -1459,7 +1484,7 @@ function getTenantSurname(){
 }
 
 function formSnapshot(){
-  const ids=["address","date","tenant","landlord","electricNo","electric","waterNo","water","gasNo","gas","keys","notes"];
+  const ids=["address","date","tenant","landlord","electricNo","electric","waterNo","water","gasNo","gas","keys","returnAgreements","notes"];
   const fields={};
   ids.forEach(id=>{
     const el=document.getElementById(id);
@@ -1492,7 +1517,7 @@ function formSnapshot(){
 }
 
 function lightweightDraftSnapshot(){
-  const ids=["address","date","tenant","landlord","electricNo","electric","waterNo","water","gasNo","gas","keys","notes"];
+  const ids=["address","date","tenant","landlord","electricNo","electric","waterNo","water","gasNo","gas","keys","returnAgreements","notes"];
   const fields={};
   ids.forEach(id=>{const el=document.getElementById(id);fields[id]=el?(el.value??""):"";});
   fields.tenantSignaturePlace=document.getElementById("tenantSignaturePlace")?.value??storedSignatureDetails.tenantPlace??"";
@@ -1745,7 +1770,7 @@ async function saveTransferOnly(){
   const ok=await persistCurrentTransfer();
   if(!ok) return;
 
-  alert("Übergabe gespeichert.");
+  alert(getTransferWording().actionLabel+" gespeichert.");
   returnToBusinessDashboard();
 }
 
@@ -1880,6 +1905,11 @@ function showSummary(){
       <div class="protocol-section">
         <div class="section-title"><span>Räume & Zustand</span></div>
         ${rooms}
+      </div>
+
+      <div class="protocol-section ${wording.isReturn?"":"hidden"}">
+        <div class="section-title"><span>Offene Arbeiten / Vereinbarungen</span></div>
+        <div class="protocol-detail">${esc(document.getElementById("returnAgreements")?.value)||"Keine offenen Arbeiten oder Vereinbarungen dokumentiert."}</div>
       </div>
 
       <div class="protocol-section">
