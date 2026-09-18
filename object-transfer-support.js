@@ -21,8 +21,9 @@
     const apartmentSelect=document.getElementById("transferApartmentSelect");
     if(!modal||!objectSelect||!apartmentSelect)return;
 
+    if(typeof selectPendingTransferType==="function")selectPendingTransferType("handover");
     const intro=modal.querySelector(".transfer-start-box > p");
-    if(intro)intro.textContent="Wähle das Objekt aus. Eine Wohnung kannst du optional auswählen – bei einem Haus oder einer kompletten Einheit startest du direkt über das Objekt.";
+    if(intro)intro.textContent="Wähle Übergabe oder Rücknahme und anschließend das Objekt. Eine Wohnung kannst du optional auswählen.";
     const apartmentLabel=modal.querySelector('label[for="transferApartmentSelect"]');
     if(apartmentLabel)apartmentLabel.textContent="Wohnung / Einheit (optional)";
 
@@ -47,6 +48,7 @@
     if(!requireBusinessWriteAccess())return;
     const objectId=document.getElementById("transferObjectSelect")?.value||"";
     const apartmentId=document.getElementById("transferApartmentSelect")?.value||"";
+    const transferMode=typeof getPendingTransferType==="function"?getPendingTransferType():normalizeTransferType(document.querySelector('input[name="transferType"]:checked')?.value);
     if(!objectId){
       alert("Bitte zuerst ein Objekt auswählen.");
       return;
@@ -56,12 +58,14 @@
     selectedApartmentId=apartmentId||null;
     window.currentBusinessObjectId=objectId;
     window.currentBusinessApartmentId=apartmentId||null;
+    window.currentBusinessTransferType=transferMode;
     closeTransferStart();
-    await window.startApartmentTransfer();
+    await window.startApartmentTransfer(transferMode);
   };
 
-  window.startApartmentTransfer=async function(){
+  window.startApartmentTransfer=async function(requestedType){
     if(!requireBusinessWriteAccess())return;
+    const transferMode=normalizeTransferType(requestedType||window.currentBusinessTransferType);
     const object=currentObject();
     if(!object){
       alert("Das ausgewählte Objekt konnte nicht gefunden werden.");
@@ -74,12 +78,13 @@
       return;
     }
 
+    const isReturn=transferMode==="Wohnungsrücknahme";
     const payload={
       object_id:object.id,
       apartment_id:apartment?.id||null,
-      type:apartment?"Wohnungsübergabe":"Objektübergabe",
+      type:apartment?(isReturn?"Wohnungsrücknahme":"Wohnungsübergabe"):(isReturn?"Objektrücknahme":"Objektübergabe"),
       status:"Neu",
-      data:{}
+      data:{transferType:transferMode}
     };
 
     const {data:transfer,error}=await supabaseClient
@@ -97,6 +102,8 @@
     window.currentBusinessObjectId=object.id;
     window.currentBusinessApartmentId=apartment?.id||null;
     window.currentBusinessTransferId=transfer.id;
+    window.currentBusinessTransferType=transferMode;
+    if(typeof applyTransferTypeUi==="function")applyTransferTypeUi();
     window.currentBusinessTransferCreatedByName=transfer.created_by_name||"";
 
     if(apartment){
@@ -134,7 +141,8 @@
     }
     let snapshot=await compactSnapshotMedia(formSnapshot());
     const metadata=buildTransferMetadata(snapshot);
-    const {error}=await supabaseClient.from("transfers").update({data:snapshot,status:"Gespeichert",...metadata}).eq("id",transferId);
+    const transferDbType=typeof getCurrentTransferDbType==="function"?getCurrentTransferDbType():(normalizeTransferType(window.currentBusinessTransferType)==="Wohnungsrücknahme"?"Wohnungsrücknahme":"Wohnungsübergabe");
+    const {error}=await supabaseClient.from("transfers").update({data:snapshot,status:"Gespeichert",type:transferDbType,...metadata}).eq("id",transferId);
     if(error){
       console.error("Übergabe speichern:",error);
       alert("Die Übergabe konnte nicht gespeichert werden.\n\n"+(error.message||"Unbekannter Fehler"));
@@ -150,7 +158,7 @@
   window.openBusinessTransfer=async function(transferId,objectId,apartmentId){
     const {data:transfer,error}=await supabaseClient
       .from("transfers")
-      .select("id,data,status,apartment_id,object_id,created_by_name")
+      .select("id,data,status,apartment_id,object_id,created_by_name,type")
       .eq("id",transferId)
       .single();
 
@@ -176,6 +184,7 @@
     window.currentBusinessObjectId=resolvedObjectId||null;
     window.currentBusinessApartmentId=resolvedApartmentId||null;
     window.currentBusinessTransferId=transferId;
+    window.currentBusinessTransferType=normalizeTransferType(transfer.type||transfer.data?.transferType);
     window.currentBusinessTransferCreatedByName=transfer.created_by_name||"";
 
     startApp();
