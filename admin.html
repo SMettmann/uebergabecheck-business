@@ -72,6 +72,14 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Sego
     <div class="kpi business"><span>Letzte 30 Tage</span><strong id="kpiVisits30">–</strong></div>
   </div>
 
+  <div class="section-label"><h2>Business-Interesse</h2><span>Klicks auf die Business-Buttons</span></div>
+  <div class="kpis">
+    <div class="kpi business"><span>Klicks gesamt</span><strong id="kpiBusinessClicksTotal">–</strong></div>
+    <div class="kpi business active"><span>Heute</span><strong id="kpiBusinessClicksToday">–</strong></div>
+    <div class="kpi business"><span>Startseite</span><strong id="kpiBusinessClicksLanding">–</strong></div>
+    <div class="kpi business"><span>Nach Übergabe</span><strong id="kpiBusinessClicksResult">–</strong></div>
+  </div>
+
   <div class="section-label"><h2>Support & Verbesserungen</h2><span>Anfragen deiner Kunden</span></div>
   <div class="kpis">
     <div class="kpi"><span>Offen</span><strong id="kpiOpen">–</strong></div>
@@ -230,6 +238,22 @@ async function loadSiteVisitStats(){
   document.getElementById("kpiVisits30").textContent=monthQ.count??0;
 }
 
+async function loadBusinessClickStats(){
+  const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const [total,todayQ,landingQ,resultQ]=await Promise.all([
+    client.from("business_cta_click_events").select("id",{count:"exact",head:true}),
+    client.from("business_cta_click_events").select("id",{count:"exact",head:true}).gte("clicked_at",today.toISOString()),
+    client.from("business_cta_click_events").select("id",{count:"exact",head:true}).eq("placement","landing"),
+    client.from("business_cta_click_events").select("id",{count:"exact",head:true}).eq("placement","result")
+  ]);
+  const queries=[total,todayQ,landingQ,resultQ];
+  if(queries.some(q=>q.error)){console.error(...queries.map(q=>q.error).filter(Boolean));return;}
+  document.getElementById("kpiBusinessClicksTotal").textContent=total.count??0;
+  document.getElementById("kpiBusinessClicksToday").textContent=todayQ.count??0;
+  document.getElementById("kpiBusinessClicksLanding").textContent=landingQ.count??0;
+  document.getElementById("kpiBusinessClicksResult").textContent=resultQ.count??0;
+}
+
 async function load(){
   const target=document.getElementById("list");
   target.innerHTML='<div class="empty">Wird geladen …</div>';
@@ -238,7 +262,7 @@ async function load(){
   rows=data||[];updateKpis();render();
 }
 
-async function refreshAll(){await Promise.all([loadBusinessStats(),loadCompanies(),loadPrivateStats(),loadSiteVisitStats(),load()]);}
+async function refreshAll(){await Promise.all([loadBusinessStats(),loadCompanies(),loadPrivateStats(),loadSiteVisitStats(),loadBusinessClickStats(),load()]);}
 
 async function patch(id,payload){
   const {error}=await client.from("business_feedback").update(payload).eq("id",id);
