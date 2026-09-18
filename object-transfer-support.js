@@ -56,6 +56,9 @@
         tenant:String(fields.tenant||snapshot?.tenantName||""),
         selectedRooms:Array.isArray(snapshot?.selectedRooms)?snapshot.selectedRooms.filter(Boolean):[],
         customRooms:Array.isArray(snapshot?.customRooms)?snapshot.customRooms.filter(Boolean):[],
+        roomReference:snapshot?.roomData&&typeof snapshot.roomData==="object"
+          ? JSON.parse(JSON.stringify(snapshot.roomData))
+          : {},
         meterNumbers:{
           electricNo:String(fields.electricNo||""),
           waterNo:String(fields.waterNo||""),
@@ -70,6 +73,11 @@
 
   function applyPreviousHandoverDefaults(defaults){
     if(!defaults)return false;
+
+    window.__uebergabeCheckPreviousHandoverRooms=
+      defaults.roomReference&&typeof defaults.roomReference==="object"
+        ? JSON.parse(JSON.stringify(defaults.roomReference))
+        : {};
 
     [["address",defaults.address],["tenant",defaults.tenant]].forEach(([id,value])=>{
       const input=document.getElementById(id);
@@ -99,6 +107,7 @@
       photoURLs=[];
       if(typeof renderRooms==="function")renderRooms();
       if(typeof updateCustomRoomNote==="function")updateCustomRoomNote();
+      if(typeof renderPreviousHandoverRoomReference==="function")renderPreviousHandoverRoomReference();
     }
 
     Object.entries(defaults.meterNumbers||{}).forEach(([id,value])=>{
@@ -111,6 +120,65 @@
 
     if(typeof saveDraft==="function")saveDraft();
     return !!defaults.address||!!defaults.tenant||defaults.selectedRooms.length>0||Object.values(defaults.meterNumbers||{}).some(Boolean);
+  }
+
+  function ensurePreviousHandoverRoomReferenceUi(){
+    let box=document.getElementById("previousHandoverRoomReference");
+    if(box)return box;
+
+    const description=document.getElementById("description");
+    const descriptionLabel=description?.previousElementSibling;
+    if(!description||!descriptionLabel)return null;
+
+    box=document.createElement("div");
+    box.id="previousHandoverRoomReference";
+    box.className="hidden";
+    box.style.cssText="margin:0 0 16px;padding:14px 15px;border:1px solid #d9dadd;border-radius:14px;background:#f7f7f8;";
+    descriptionLabel.parentNode.insertBefore(box,descriptionLabel);
+    return box;
+  }
+
+  function renderPreviousHandoverRoomReference(){
+    const box=ensurePreviousHandoverRoomReferenceUi();
+    if(!box)return;
+
+    if(normalizeTransferType(window.currentBusinessTransferType)!=="Wohnungsrücknahme"){
+      box.classList.add("hidden");
+      box.innerHTML="";
+      return;
+    }
+
+    const reference=window.__uebergabeCheckPreviousHandoverRooms?.[currentRoom]||null;
+    if(!reference || !["wear","damage"].includes(reference.state)){
+      box.classList.add("hidden");
+      box.innerHTML="";
+      return;
+    }
+
+    const label=reference.state==="damage"?"Mangel vorhanden":"Gebrauchsspuren";
+    const descriptionText=String(reference.description||"").trim();
+    const photos=Array.isArray(reference.photos)?reference.photos.filter(Boolean):[];
+
+    box.innerHTML=
+      '<div style="font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#777;margin-bottom:7px;">Bei der Übergabe dokumentiert</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:'+(descriptionText||photos.length?'8':'0')+'px;">'+
+        '<strong style="font-size:14px;">'+esc(label)+'</strong>'+
+        '<span style="font-size:12px;color:#777;">Nur als Vergleich – Zustand bei Rückgabe neu bewerten</span>'+
+      '</div>'+
+      (descriptionText?'<div style="font-size:14px;line-height:1.5;">'+esc(descriptionText)+'</div>':'')+
+      (photos.length?'<div class="photo-preview" style="margin-top:10px;">'+photos.map((url,i)=>'<img src="'+escAttr(url)+'" alt="Foto aus Übergabe '+(i+1)+'" title="Foto aus der Übergabe">').join("")+'</div>':'');
+
+    box.classList.remove("hidden");
+  }
+
+  const originalLoadRoom=window.loadRoom;
+  if(typeof originalLoadRoom==="function"&&!window.__uebergabeCheckReturnReferenceLoadRoomWrapped){
+    window.__uebergabeCheckReturnReferenceLoadRoomWrapped=true;
+    window.loadRoom=function(){
+      const result=originalLoadRoom.apply(this,arguments);
+      renderPreviousHandoverRoomReference();
+      return result;
+    };
   }
 
   window.startBusinessTransfer=function(){
@@ -181,6 +249,7 @@
     const previousHandoverDefaults=isReturn
       ? await loadPreviousHandoverDefaults(object,apartment)
       : null;
+    window.__uebergabeCheckPreviousHandoverRooms={};
 
     const payload={
       object_id:object.id,
@@ -307,6 +376,16 @@
     window.currentBusinessTransferId=transferId;
     window.currentBusinessTransferType=normalizeTransferType(transfer.type||transfer.data?.transferType);
     window.currentBusinessTransferCreatedByName=transfer.created_by_name||"";
+
+    window.__uebergabeCheckPreviousHandoverRooms={};
+    if(window.currentBusinessTransferType==="Wohnungsrücknahme"){
+      const object=(businessObjects||[]).find(item=>String(item?.id)===String(resolvedObjectId))||null;
+      const previous=object?await loadPreviousHandoverDefaults(object,apartment):null;
+      window.__uebergabeCheckPreviousHandoverRooms=
+        previous?.roomReference&&typeof previous.roomReference==="object"
+          ? JSON.parse(JSON.stringify(previous.roomReference))
+          : {};
+    }
 
     startApp();
     if(transfer.data)restoreTransferSnapshot(transfer.data);
