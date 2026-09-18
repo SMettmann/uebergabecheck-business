@@ -356,6 +356,17 @@
   .transfer-start-field{margin-bottom:14px}
   .transfer-start-field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
   .transfer-start-field select{width:100%;padding:13px 14px;border:1px solid #ddd;border-radius:12px;background:#fff;font:inherit}
+  .transfer-type-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .transfer-type-option{display:flex;align-items:flex-start;gap:10px;border:1px solid #ddd;border-radius:14px;padding:13px 14px;cursor:pointer;background:#fff;transition:.15s ease}
+  .transfer-type-option:hover{border-color:#bfc1c6;background:#fafafa}
+  .transfer-type-option:has(input:checked){border:2px solid #111;padding:12px 13px;background:#f8f8f8}
+  .transfer-type-option input{width:auto;margin:3px 0 0;accent-color:#111}
+  .transfer-type-option strong{display:block;font-size:14px;margin-bottom:3px}
+  .transfer-type-option small{display:block;color:#777;font-size:12px;line-height:1.35}
+  .transfer-context{position:sticky;top:12px;z-index:70;display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px;padding:10px 14px;background:rgba(255,255,255,.96);border:1px solid #dedfe3;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.06);backdrop-filter:blur(8px)}
+  .transfer-context span{font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#777}
+  .transfer-context strong{font-size:14px}
+  @media(max-width:560px){.transfer-type-options{grid-template-columns:1fr}.transfer-context{top:8px}}
   .transfer-start-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}
   .transfer-start-actions button{border:0;border-radius:12px;padding:12px 17px;font:inherit;cursor:pointer}
   .transfer-start-actions .cancel{background:#eee}
@@ -488,8 +499,21 @@
 </div>
 <div class="transfer-start-modal hidden" id="transferStartModal" style="display:none;">
 <div class="transfer-start-box">
-<h2>Neue Übergabe</h2>
-<p>Wähle zuerst das Objekt und die Wohnung aus, für die die Übergabe durchgeführt werden soll.</p>
+<h2>Neuer Vorgang</h2>
+<p>Wähle, ob es sich um eine Übergabe oder Rücknahme handelt, und ordne den Vorgang der passenden Wohnung zu.</p>
+<div class="transfer-start-field">
+<label>Art des Vorgangs</label>
+<div class="transfer-type-options">
+<label class="transfer-type-option">
+<input type="radio" name="transferType" value="Wohnungsübergabe" checked>
+<span><strong>Übergabe / Einzug</strong><small>Dokumentation bei Übergabe der Wohnung an den Mieter.</small></span>
+</label>
+<label class="transfer-type-option">
+<input type="radio" name="transferType" value="Wohnungsrücknahme">
+<span><strong>Rücknahme / Auszug</strong><small>Dokumentation bei Abnahme und Rückgabe der Wohnung.</small></span>
+</label>
+</div>
+</div>
 <div class="transfer-start-field">
 <label for="transferObjectSelect">Objekt</label>
 <select id="transferObjectSelect" onchange="populateTransferApartmentSelect()">
@@ -504,7 +528,7 @@
 </div>
 <div class="transfer-start-actions">
 <button class="cancel" onclick="closeTransferStart()" type="button">Abbrechen</button>
-<button class="start" onclick="confirmTransferStart()" type="button">Übergabe starten</button>
+<button class="start" onclick="confirmTransferStart()" type="button">Vorgang starten</button>
 </div>
 </div>
 </div>
@@ -553,7 +577,7 @@
 <button class="secondary" onclick="goBusinessHome()" type="button">⌂ Dashboard</button>
 <button class="secondary" onclick="openCompanyProfile()" type="button">🏢 Unternehmensdaten</button>
 <button class="secondary" onclick="businessLogout()" type="button">Abmelden</button>
-<button class="primary" onclick="startBusinessTransfer()" type="button">＋ Neue Übergabe</button>
+<button class="primary" onclick="startBusinessTransfer()" type="button">＋ Neuer Vorgang</button>
 </div>
 </div>
 <div class="subscription-notice hidden" id="businessSubscriptionNotice">
@@ -565,32 +589,32 @@
 <button class="active" type="button" onclick="navigateBusinessTab('dashboard',this)">⌂ Dashboard</button>
 <button type="button" onclick="navigateBusinessTab('objects',this)">Objekte</button>
 <button type="button" onclick="navigateBusinessTab('apartments',this)">Wohnungen</button>
-<button type="button" onclick="navigateBusinessTab('transfers',this)">Übergaben</button>
+<button type="button" onclick="navigateBusinessTab('transfers',this)">Vorgänge</button>
 <button type="button" onclick="navigateBusinessTab('defects',this)">Mängel</button>
 </div>
 <div class="dashboard-grid">
 <div class="dashboard-stat"><span>Objekte</span><strong>0</strong></div>
 <div class="dashboard-stat"><span>Wohnungen</span><strong>0</strong></div>
-<div class="dashboard-stat"><span>Übergaben</span><strong>0</strong></div>
+<div class="dashboard-stat"><span>Vorgänge</span><strong>0</strong></div>
 <div class="dashboard-stat"><span>Offene Mängel</span><strong>0</strong></div>
 </div>
 <section class="dashboard-card hidden" id="businessTransfersCard">
 <div class="dashboard-card-head">
-<h2>Übergaben</h2>
-<button class="primary" onclick="startBusinessTransfer()" type="button">＋ Neue Übergabe</button>
+<h2>Vorgänge</h2>
+<button class="primary" onclick="startBusinessTransfer()" type="button">＋ Neuer Vorgang</button>
 </div>
 <div class="transfer-list" id="businessTransfersList">
-<div class="empty-state">Noch keine Übergaben vorhanden.</div>
+<div class="empty-state">Noch keine Vorgänge vorhanden.</div>
 </div>
 </section>
   <section class="dashboard-card" id="businessSearchCard">
     <div class="dashboard-card-head">
-      <div><h2>Suche</h2><small style="color:#777;">Objekte, Wohnungen und Übergaben durchsuchen</small></div>
+      <div><h2>Suche</h2><small style="color:#777;">Objekte, Wohnungen und Vorgänge durchsuchen</small></div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <input id="businessGlobalSearch" type="search" placeholder="z. B. Musterstraße, 2. OG links oder Übergabe …" oninput="runBusinessGlobalSearch()" style="flex:1;min-width:240px;">
       <select id="businessSearchType" onchange="runBusinessGlobalSearch()" style="min-width:150px;">
-        <option value="all">Alles</option><option value="objects">Objekte</option><option value="apartments">Wohnungen</option><option value="transfers">Übergaben</option>
+        <option value="all">Alles</option><option value="objects">Objekte</option><option value="apartments">Wohnungen</option><option value="transfers">Vorgänge</option>
       </select>
     </div>
     <div id="businessSearchResults" class="transfer-list" style="margin-top:14px;"><div class="empty-state">Suchbegriff eingeben, um Treffer zu sehen.</div></div>
@@ -628,7 +652,7 @@
 <span>→</span>
 </div>
 <div class="dashboard-list-item" onclick="startBusinessTransfer()" style="cursor:pointer;">
-<div><strong>Neue Übergabe</strong><small>Einzug oder Auszug dokumentieren</small></div>
+<div><strong>Neuer Vorgang</strong><small>Übergabe oder Rücknahme dokumentieren</small></div>
 <span>→</span>
 </div>
 </div>
@@ -644,15 +668,15 @@
 <div class="dashboard-actions">
 <button class="secondary" onclick="closeApartment()" type="button">← Zurück</button>
 <button class="secondary" onclick="editSelectedApartment()" type="button">Bearbeiten</button>
-<button class="primary" onclick="startApartmentTransfer()" type="button">＋ Neue Übergabe</button>
+<button class="primary" onclick="startBusinessTransfer()" type="button">＋ Neuer Vorgang</button>
 </div>
 </div>
 <div class="dashboard-card-head">
-<h2>Übergaben</h2>
-<button class="secondary" onclick="startApartmentTransfer()" type="button">＋ Neue Übergabe</button>
+<h2>Vorgänge</h2>
+<button class="secondary" onclick="startBusinessTransfer()" type="button">＋ Neuer Vorgang</button>
 </div>
 <div class="transfer-list" id="apartmentTransfers">
-<div class="empty-state">Noch keine Übergaben für diese Wohnung vorhanden.</div>
+<div class="empty-state">Noch keine Vorgänge für diese Wohnung vorhanden.</div>
 </div>
 </section>
 <section class="object-detail hidden" id="objectDetailSection">
@@ -812,6 +836,7 @@
 <p>Dokumentiere Räume, Mängel, Zählerstände und Schlüssel Schritt für Schritt. Am Ende entsteht ein übersichtliches Übergabeprotokoll.</p>
 <div class="progress" id="progress"></div>
 </section>
+<div class="transfer-context" id="transferContext"><span>Aktueller Vorgang</span><strong id="transferContextLabel">Übergabe / Einzug</strong></div>
 <section class="card" id="step1">
 <h2>1. Grunddaten</h2>
 <div class="sub">Ein paar Angaben zum Start.</div>
@@ -824,7 +849,7 @@
 <div class="actions">
 <button class="secondary" onclick="backToBusinessDashboard()" type="button">← Dashboard</button>
 <div style="display:flex;gap:10px;">
-<button class="secondary" onclick="newTransfer()">Neue Übergabe</button>
+<button class="secondary" onclick="newTransfer()">Neuer Vorgang</button>
 <button class="primary" onclick="go(2)">Weiter</button>
 </div>
 </div>
@@ -924,12 +949,12 @@
 <div class="actions"><button class="secondary" onclick="go(3)">Zurück</button><button class="primary" onclick="showSummary()">Protokoll anzeigen</button></div>
 </section>
 <section class="card hidden" id="step5">
-<h2>5. Übergabeprotokoll</h2>
+<h2 id="step5Title">5. Übergabeprotokoll</h2>
 <div class="sub">Deine Angaben als übersichtliche Dokumentation.</div>
 <div id="summary"></div>
 <div class="actions no-print" style="justify-content:flex-end;flex-wrap:wrap;">
 <button class="secondary" onclick="go(4)" type="button">Zurück</button>
-<button class="secondary" onclick="saveTransferOnly()" type="button">Übergabe speichern</button>
+<button class="secondary" id="saveTransferOnlyButton" onclick="saveTransferOnly()" type="button">Übergabe speichern</button>
 <button class="secondary" onclick="openTransferEmail()" type="button">📧 Per E-Mail senden</button>
 <button class="secondary" onclick="saveTransferPdf()" type="button">PDF speichern</button>
 <button class="primary" onclick="printTransfer()" type="button">Drucken</button>
@@ -1102,6 +1127,36 @@ let photoURLs=[];
 let meterPhotos={electric:[],water:[],gas:[]};
 let storedSignatures={tenant:"",landlord:""};
 let storedSignatureDetails={tenantPlace:"",landlordPlace:"",date:""};
+window.currentBusinessTransferType="Wohnungsübergabe";
+
+function normalizeTransferType(type){
+  return type==="Wohnungsrücknahme" ? "Wohnungsrücknahme" : "Wohnungsübergabe";
+}
+function getTransferWording(type=window.currentBusinessTransferType){
+  const normalized=normalizeTransferType(type);
+  const isReturn=normalized==="Wohnungsrücknahme";
+  return {
+    type:normalized,
+    isReturn,
+    shortLabel:isReturn?"Rücknahme / Auszug":"Übergabe / Einzug",
+    protocolTitle:isReturn?"Rücknahmeprotokoll":"Übergabeprotokoll",
+    kicker:isReturn?"WOHNUNGSRÜCKNAHME":"WOHNUNGSÜBERGABE",
+    overviewTitle:isReturn?"Rücknahmeübersicht":"Übergabeübersicht",
+    keysTitle:isReturn?"Schlüsselrückgabe":"Schlüsselübergabe",
+    actionLabel:isReturn?"Rücknahme":"Übergabe"
+  };
+}
+function applyTransferTypeUi(){
+  const wording=getTransferWording();
+  const label=document.getElementById("transferContextLabel");
+  if(label) label.textContent=wording.shortLabel;
+  const step5Title=document.getElementById("step5Title");
+  if(step5Title) step5Title.textContent="5. "+wording.protocolTitle;
+  const saveButton=document.getElementById("saveTransferOnlyButton");
+  if(saveButton) saveButton.textContent=wording.actionLabel+" speichern";
+  const notes=document.getElementById("notes");
+  if(notes) notes.placeholder=wording.isReturn?"Sonstige Hinweise zur Rücknahme / Abnahme":"Sonstige Hinweise zur Übergabe";
+}
 
 document.getElementById("date").value=new Date().toISOString().slice(0,10);
 
@@ -1296,7 +1351,7 @@ function closeImpressum(){
   document.body.style.overflow="";
 }
 function newTransfer(){
-  if(!confirm("Neue Übergabe starten? Die bisher gespeicherten Angaben werden gelöscht.")) return;
+  if(!confirm("Neuen Vorgang starten? Die bisher gespeicherten Angaben dieses Entwurfs werden gelöscht.")) return;
   clearDraft();
   location.reload();
 }
@@ -1320,7 +1375,8 @@ function formSnapshot(){
   fields.signatureDate=document.getElementById("signatureDate")?.value ?? storedSignatureDetails.date ?? "";
   storedSignatureDetails={tenantPlace:fields.tenantSignaturePlace||"",landlordPlace:fields.landlordSignaturePlace||"",date:fields.signatureDate||""};
   return {
-    version:2,
+    version:3,
+    transferType:normalizeTransferType(window.currentBusinessTransferType),
     fields,
     tenantName:fields.tenant||"",
     tenantSurname:getTenantSurname(),
@@ -1351,7 +1407,7 @@ function lightweightDraftSnapshot(){
   Object.entries(roomData||{}).forEach(([name,room])=>{
     lightRooms[name]={state:room?.state||"ok",description:room?.description||"",defectStatus:room?.defectStatus||"",defectNote:room?.defectNote||"",photos:[]};
   });
-  return {version:3,fields,tenantName:fields.tenant||"",tenantSurname:getTenantSurname(),selectedRooms:[...selectedRooms],roomData:lightRooms,customRooms:[...customRooms],currentRoom:currentRoom||"",currentState:currentState||"ok",savedAt:new Date().toISOString()};
+  return {version:4,transferType:normalizeTransferType(window.currentBusinessTransferType),fields,tenantName:fields.tenant||"",tenantSurname:getTenantSurname(),selectedRooms:[...selectedRooms],roomData:lightRooms,customRooms:[...customRooms],currentRoom:currentRoom||"",currentState:currentState||"ok",savedAt:new Date().toISOString()};
 }
 
 function saveDraft(){
@@ -1366,6 +1422,7 @@ function loadDraft(){
     const raw=sessionStorage.getItem("uebergabecheck_draft");
     if(!raw) return;
     const d=JSON.parse(raw);
+    if(d.transferType) window.currentBusinessTransferType=normalizeTransferType(d.transferType);
     if(d.fields) Object.entries(d.fields).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.value=val;});
     if(Array.isArray(d.customRooms)) customRooms=d.customRooms.slice();
     if(Array.isArray(d.selectedRooms)) selectedRooms=d.selectedRooms;
@@ -1378,6 +1435,9 @@ function restoreTransferSnapshot(snapshot){
     if(typeof snapshot==="string") snapshot=JSON.parse(snapshot);
     if(snapshot?.data && typeof snapshot.data==="object" && !snapshot.fields) snapshot=snapshot.data;
     if(!snapshot) return;
+
+    if(snapshot.transferType) window.currentBusinessTransferType=normalizeTransferType(snapshot.transferType);
+    applyTransferTypeUi();
 
     Object.entries(snapshot.fields||{}).forEach(([id,val])=>{
       const el=document.getElementById(id);
@@ -1523,7 +1583,7 @@ async function saveTransferDataToDatabase(showMessage=false){
   try{
     let snapshot=await compactSnapshotMedia(formSnapshot());
     const metadata=buildTransferMetadata(snapshot);
-    const {error}=await supabaseClient.from("transfers").update({data:snapshot,status:"Gespeichert",...metadata}).eq("id",transferId);
+    const {error}=await supabaseClient.from("transfers").update({data:snapshot,status:"Gespeichert",type:normalizeTransferType(window.currentBusinessTransferType),...metadata}).eq("id",transferId);
     if(error){
       console.error("Automatisches Speichern der Übergabe:",error);
       if(showMessage) alert("Die Übergabe konnte nicht gespeichert werden.\n\n"+(error.message||"Unbekannter Fehler"));
@@ -1549,7 +1609,7 @@ async function persistCurrentTransfer(){
   if(!transferId||!apartmentId){alert("Diese Übergabe ist noch nicht mit einer Wohnung verknüpft.");return false;}
   let snapshot=await compactSnapshotMedia(formSnapshot());
   const metadata=buildTransferMetadata(snapshot);
-  const {error}=await supabaseClient.from("transfers").update({data:snapshot,status:"Gespeichert",...metadata}).eq("id",transferId);
+  const {error}=await supabaseClient.from("transfers").update({data:snapshot,status:"Gespeichert",type:normalizeTransferType(window.currentBusinessTransferType),...metadata}).eq("id",transferId);
   if(error){
     console.error("Übergabe speichern:",error);
     alert("Die Übergabe konnte nicht gespeichert werden.\n\n"+(error.message||"Unbekannter Fehler"));
@@ -1599,7 +1659,8 @@ async function printTransfer(){
   if(!ok) return;
 
   const oldTitle=document.title;
-  document.title="Übergabeprotokoll – Wohnungsübergabe";
+  const wording=getTransferWording();
+  document.title=`${wording.protocolTitle} – ${wording.type}`;
   window.onafterprint=()=>{
     document.title=oldTitle;
     window.onafterprint=null;
@@ -1614,12 +1675,13 @@ async function openTransferEmail(){
     return;
   }
 
-  const address=document.getElementById("address")?.value.trim()||"Wohnungsübergabe";
+  const wording=getTransferWording();
+  const address=document.getElementById("address")?.value.trim()||wording.type;
   const tenant=document.getElementById("tenant")?.value.trim()||"–";
   const dateRaw=document.getElementById("date")?.value||"";
   const dateFormatted=dateRaw?new Date(dateRaw+"T12:00:00").toLocaleDateString("de-DE"):"–";
-  const subject=`Übergabeprotokoll – ${address}`;
-  const text=`Hallo,\r\n\r\nanbei das Übergabeprotokoll zur Wohnung ${address}.\r\n\r\nDatum: ${dateFormatted}\r\nMieter: ${tenant}\r\n\r\nDokumentiert mit ÜbergabeCheck – einfach, vollständig und nachvollziehbar.\r\nwww.uebergabe-check.de\r\n\r\nViele Grüße`;
+  const subject=`${wording.protocolTitle} – ${address}`;
+  const text=`Hallo,\r\n\r\nanbei das ${wording.protocolTitle} zur Wohnung ${address}.\r\n\r\nDatum: ${dateFormatted}\r\nMieter: ${tenant}\r\n\r\nDokumentiert mit ÜbergabeCheck – einfach, vollständig und nachvollziehbar.\r\nwww.uebergabe-check.de\r\n\r\nViele Grüße`;
 
   try{
     if(typeof window.createProtocolPdfBlob!=="function") throw new Error("PDF_UNAVAILABLE");
@@ -1658,6 +1720,7 @@ async function openTransferEmail(){
 
 function showSummary(){
   if (window.umami) window.umami.track("Protokoll erstellt");
+  const wording=getTransferWording();
   const rooms=selectedRooms.map(r=>{
     const d=roomData[r]||{state:"ok",description:"",photos:[]};
     const photos=(d.photos||[]).map((u,i)=>`<img class="protocol-photo" src="${u}" alt="Foto ${i+1}">`).join("");
@@ -1676,8 +1739,8 @@ function showSummary(){
     <div class="protocol">
       ${companyLetterheadHtml()}
       <div class="protocol-cover">
-        <div class="protocol-kicker">WOHNUNGSÜBERGABE</div>
-        <h1>Übergabeprotokoll</h1>
+        <div class="protocol-kicker">${wording.kicker}</div>
+        <h1>${wording.protocolTitle}</h1>
         <div class="protocol-address">${esc(document.getElementById("address").value)||"Adresse nicht angegeben"}</div>
         <div class="protocol-meta">
           <div><span>Datum</span><strong>${dateFormatted}</strong></div>
@@ -1688,7 +1751,7 @@ function showSummary(){
       </div>
 
       <div class="protocol-section">
-        <div class="section-title"><span>Übergabeübersicht</span></div>
+        <div class="section-title"><span>${wording.overviewTitle}</span></div>
         <div class="overview-grid">
           <div><span>Dokumentierte Räume</span><strong>${selectedRooms.length}</strong></div>
           <div><span>Dokumentierte Fotos</span><strong>${selectedRooms.reduce((n,r)=>n+((roomData[r]?.photos||[]).length),0)}</strong></div>
@@ -1715,7 +1778,7 @@ function showSummary(){
       </div>
 
       <div class="protocol-section">
-        <div class="section-title"><span>Schlüsselübergabe</span></div>
+        <div class="section-title"><span>${wording.keysTitle}</span></div>
         <div class="protocol-detail">${esc(document.getElementById("keys").value)||"Keine Angaben dokumentiert."}</div>
       </div>
 
@@ -2746,8 +2809,9 @@ function closeApartment(){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
-async function startApartmentTransfer(){
+async function startApartmentTransfer(requestedType){
   if(!requireBusinessWriteAccess())return;
+  const transferType=normalizeTransferType(requestedType||window.currentBusinessTransferType);
   const apartment=getSelectedApartment();
   if(!apartment){
     alert("Die ausgewählte Wohnung konnte nicht gefunden werden.");
@@ -2758,7 +2822,7 @@ async function startApartmentTransfer(){
     .from("transfers")
     .insert({
       apartment_id:apartment.id,
-      type:"Wohnungsübergabe",
+      type:transferType,
       status:"Neu",
       data:{}
     })
@@ -2773,6 +2837,7 @@ async function startApartmentTransfer(){
 
   window.currentBusinessApartmentId=apartment.id;
   window.currentBusinessTransferId=transfer.id;
+  window.currentBusinessTransferType=normalizeTransferType(transfer.type||transferType);
   window.currentBusinessTransferCreatedByName=transfer.created_by_name||"";
 
   if(!apartmentTransfers[apartment.id]) apartmentTransfers[apartment.id]=[];
@@ -2796,7 +2861,7 @@ async function renderApartmentTransfers(){
   const {data:rows,error}=await supabaseClient.from("transfers").select("id,type,status,created_at,apartment_id,tenant_name,tenant_surname,open_defect_count,created_by_name").eq("apartment_id",selectedApartmentId).order("created_at",{ascending:false});
   if(error){console.error("Wohnungsübergaben laden:",error);list.innerHTML='<div class="empty-state">Übergaben konnten nicht geladen werden.</div>';return;}
   apartmentTransfers[selectedApartmentId]=(rows||[]).map(t=>({id:t.id,type:t.type||"Wohnungsübergabe",created:t.created_at?new Date(t.created_at).toLocaleDateString("de-DE"):"–",status:t.status||"Neu",tenantName:t.tenant_name||"",tenantSurname:t.tenant_surname||"",createdByName:t.created_by_name||"",openDefectCount:Number(t.open_defect_count||0)}));
-  if(!rows?.length){list.innerHTML='<div class="empty-state">Noch keine Übergaben für diese Wohnung vorhanden.</div>';return;}
+  if(!rows?.length){list.innerHTML='<div class="empty-state">Noch keine Vorgänge für diese Wohnung vorhanden.</div>';return;}
   const objectId=selectedBusinessObjectId;
   list.innerHTML=rows.map(t=>{
     const type=t.type||"Wohnungsübergabe";
@@ -3864,7 +3929,7 @@ async function openBusinessTransfer(transferId, objectId, apartmentId){
 
   const {data:transfer,error}=await supabaseClient
     .from("transfers")
-    .select("id,data,status,apartment_id,created_by_name")
+    .select("id,data,status,apartment_id,created_by_name,type")
     .eq("id",transferId)
     .single();
 
@@ -3875,6 +3940,7 @@ async function openBusinessTransfer(transferId, objectId, apartmentId){
   }
 
   window.currentBusinessTransferCreatedByName=transfer?.created_by_name||"";
+  window.currentBusinessTransferType=normalizeTransferType(transfer?.type);
   startApp();
 
   if(transfer?.data){
@@ -3894,7 +3960,7 @@ async function renderBusinessTransfers(){
   if(!supabaseClient || !supabaseUser){container.innerHTML='<div class="empty-state">Bitte zuerst anmelden.</div>';return;}
   const {data:rows,error}=await supabaseClient.from("transfers").select("id,type,status,created_at,apartment_id,tenant_name,tenant_surname,open_defect_count,created_by_name,apartments(id,name,number,object_id,objects(id,name))").order("created_at",{ascending:false});
   if(error){console.error("Übergaben laden:",error);container.innerHTML='<div class="empty-state">Übergaben konnten nicht geladen werden.</div>';return;}
-  if(!rows?.length){container.innerHTML='<div class="empty-state">Noch keine Übergaben vorhanden.</div>';return;}
+  if(!rows?.length){container.innerHTML='<div class="empty-state">Noch keine Vorgänge vorhanden.</div>';return;}
   container.innerHTML=rows.map(t=>{
     const a=t.apartments;const o=a?.objects;
     const tenantName=t.tenant_name||"";const tenantSurname=t.tenant_surname||"";
@@ -3920,7 +3986,7 @@ async function renderDashboardCurrentTransfers(){
   }
 
   if(!rows?.length){
-    container.innerHTML='<div class="empty-state">Noch keine Übergaben vorhanden.<br>Starte deine erste Übergabe, um hier die Vorgänge deiner Verwaltung zu sehen.</div>';
+    container.innerHTML='<div class="empty-state">Noch keine Vorgänge vorhanden.<br>Starte deine erste Übergabe, um hier die Vorgänge deiner Verwaltung zu sehen.</div>';
     return;
   }
 
@@ -3954,10 +4020,19 @@ function startBusinessTransfer(){
   const apartmentSelect=document.getElementById("transferApartmentSelect");
   if(!modal || !objectSelect || !apartmentSelect) return;
 
+  const defaultType=document.querySelector('input[name="transferType"][value="Wohnungsübergabe"]');
+  if(defaultType) defaultType.checked=true;
+
   objectSelect.innerHTML='<option value="">Objekt auswählen …</option>' +
     businessObjects.map(o=>`<option value="${escAttr(o.id)}">${esc(o.name)}</option>`).join("");
 
-  apartmentSelect.innerHTML='<option value="">Wohnung auswählen …</option>';
+  if(selectedBusinessObjectId && businessObjects.some(o=>String(o.id)===String(selectedBusinessObjectId))){
+    objectSelect.value=selectedBusinessObjectId;
+    populateTransferApartmentSelect();
+    if(selectedApartmentId) apartmentSelect.value=selectedApartmentId;
+  }else{
+    apartmentSelect.innerHTML='<option value="">Wohnung auswählen …</option>';
+  }
 
   modal.classList.remove("hidden");
   modal.style.display="flex";
@@ -3985,6 +4060,7 @@ async function confirmTransferStart(){
   if(!requireBusinessWriteAccess())return;
   const objectId=document.getElementById("transferObjectSelect")?.value;
   const apartmentId=document.getElementById("transferApartmentSelect")?.value;
+  const transferType=normalizeTransferType(document.querySelector('input[name="transferType"]:checked')?.value);
 
   if(!objectId){
     alert("Bitte zuerst ein Objekt auswählen.");
@@ -3998,6 +4074,7 @@ async function confirmTransferStart(){
 
   selectedBusinessObjectId=objectId;
   selectedApartmentId=apartmentId;
+  window.currentBusinessTransferType=transferType;
 
   closeTransferStart();
 
@@ -4007,7 +4084,7 @@ async function confirmTransferStart(){
     return;
   }
 
-  await startApartmentTransfer();
+  await startApartmentTransfer(transferType);
 }
 
 async function businessLogout(){
@@ -4096,6 +4173,7 @@ function startApp(){
     if(landlordInput && !landlordInput.value && businessCompanyProfile?.name){
       landlordInput.value=businessCompanyProfile.name;
     }
+    applyTransferTypeUi();
   }catch(error){
     console.error("Übergabe initialisieren:",error);
   }
