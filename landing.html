@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ÜbergabeCheck Business</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f6f8;color:#17181b}
+.wrap{max-width:1120px;margin:0 auto;padding:24px 18px 60px}
+.top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:850;letter-spacing:-.3px}
+.brand span{font-weight:500;color:#777}
+.mark{width:34px;height:34px}.mark svg{width:100%;height:100%}
+.back-home{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:9px 13px;border:1px solid #d7d8dc;border-radius:11px;background:#fff;color:#454950;text-decoration:none;font-size:13px;font-weight:800;white-space:nowrap}
+.back-home:hover{border-color:#bfc1c7;background:#fafafa;color:#17181b}
+.customer-login{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:9px 14px;border:1px solid #d7d8dc;border-radius:11px;background:#fff;color:#17181b;text-decoration:none;font-size:13px;font-weight:850;box-shadow:0 3px 10px rgba(0,0,0,.035)}
+.customer-login:hover{border-color:#bfc1c7;background:#fafafa}
+
+.hero{padding:62px 0 38px;display:grid;grid-template-columns:minmax(0,1.18fr) minmax(320px,.82fr);gap:42px;align-items:center}
+.hero-copy{text-align:left}
+.pill{display:inline-flex;align-items:center;background:#fff;border:1px solid #ddd;border-radius:999px;padding:8px 13px;font-size:11px;font-weight:850;color:#666;margin-bottom:20px;letter-spacing:.05em}
+.hero h1{font-size:56px;line-height:1.03;letter-spacing:-2.3px;margin:0 0 18px;max-width:720px}
+.hero h1 em{font-style:normal;color:#6b6d72}
+.lead{max-width:690px;margin:0;color:#666;font-size:17px;line-height:1.65}
+.actions{display:flex;gap:12px;justify-content:flex-start;flex-wrap:wrap;margin-top:28px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:13px 20px;border-radius:13px;text-decoration:none;font-weight:850;font-size:14px;border:0;cursor:pointer}
+.primary{background:#111;color:#fff;box-shadow:0 8px 20px rgba(0,0,0,.12)}
+.secondary{background:#fff;color:#222;border:1px solid #ddd}
+
+.hero-offer{background:linear-gradient(145deg,#ffd84d 0%,#ffe98b 100%);border:1px solid #ddb300;border-radius:26px;padding:28px;box-shadow:0 16px 40px rgba(0,0,0,.10)}
+.hero-offer-label{display:inline-flex;background:#111;color:#fff;border-radius:999px;padding:7px 11px;font-size:10px;font-weight:900;letter-spacing:.09em;margin-bottom:17px}
+.hero-price{font-size:48px;line-height:1;font-weight:950;letter-spacing:-1.8px;margin:0}
+.hero-price small{font-size:15px;font-weight:800;letter-spacing:0;color:#514916}
+.hero-price-copy{font-size:13px;line-height:1.5;color:#4c4419;margin:9px 0 18px;font-weight:700}
+.hero-offer ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.hero-offer li{font-size:13px;line-height:1.4;font-weight:750}
+.hero-offer li::before{content:"✓";margin-right:8px;font-weight:950}
+.hero-trial{margin-top:18px;padding:12px 13px;background:rgba(255,255,255,.58);border:1px solid rgba(17,17,17,.12);border-radius:12px;font-size:12.5px;line-height:1.45;font-weight:850;text-align:center}
+.hero-offer .btn{width:100%;margin-top:12px}
+
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+.card{background:#fff;border:1px solid #e2e3e6;border-radius:18px;padding:21px;box-shadow:0 4px 16px rgba(0,0,0,.025)}
+.card strong{display:block;font-size:15px;margin-bottom:7px}.card span{display:block;color:#777;font-size:13px;line-height:1.5}
+
+.pricing{margin-top:28px;background:#111;color:#fff;border-radius:26px;padding:36px;display:grid;grid-template-columns:.9fr 1.1fr;gap:42px;align-items:center;box-shadow:0 16px 42px rgba(0,0,0,.12)}
+.pricing-kicker{font-size:11px;font-weight:900;letter-spacing:1.5px;color:#ffd84d;text-transform:uppercase;margin-bottom:10px}
+.pricing h2{font-size:32px;letter-spacing:-.9px;margin:0 0 10px}
+.pricing-copy{margin:0;color:#c9c9cc;line-height:1.6}
+.price{font-size:47px;font-weight:950;letter-spacing:-1.8px;margin:20px 0 5px;color:#fff}
+.price small{font-size:15px;font-weight:750;letter-spacing:0;color:#c9c9cc}
+.price-sub{font-size:12px;color:#ffd84d;font-weight:850;margin-bottom:13px}
+.trial{font-size:13px;font-weight:800;color:#fff;margin-bottom:20px;line-height:1.5}
+.pricing-list-wrap{background:#1c1c1e;border:1px solid #303033;border-radius:19px;padding:22px}
+.pricing-list{display:grid;grid-template-columns:1fr 1fr;gap:11px 18px;margin:0;padding:0;list-style:none}
+.pricing-list li{font-size:13px;line-height:1.45;color:#efeff1}
+.pricing-list li::before{content:"✓";font-weight:950;margin-right:8px;color:#ffd84d}
+.pricing-actions{margin-top:22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.pricing .primary{background:#ffd84d;color:#111;box-shadow:none}
+.pricing-note{font-size:12px;color:#a9a9ad;line-height:1.5}
+
+.section{margin-top:26px;background:#fff;border:1px solid #e2e3e6;border-radius:22px;padding:28px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.section h2{font-size:25px;margin:0 0 7px}.section p{margin:0;color:#666;line-height:1.55;max-width:690px}.section .btn{flex:0 0 auto}
+.contact{margin-top:26px;background:#fff;border:1px solid #e2e3e6;border-radius:24px;padding:34px}
+.contact h2{font-size:28px;margin:0 0 8px}.contact>p{color:#666;line-height:1.6;margin:0 0 22px}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.contact label{display:block;font-size:12px;font-weight:800;margin:0 0 6px}
+.contact input,.contact textarea{width:100%;padding:13px 14px;border:1px solid #d8d9dd;border-radius:12px;font:inherit;background:#fff}.contact textarea{min-height:140px;resize:vertical}.contact-full{grid-column:1/-1}
+.contact-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px}.contact-status{font-size:13px;color:#666}.contact-status.ok{color:#18743a}.contact-status.error{color:#a11}.contact-hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;overflow:hidden!important}
+.footer{text-align:center;color:#888;font-size:12px;margin-top:32px}.footer a{color:inherit;text-decoration:underline;cursor:pointer}
+.legal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.48);display:flex;align-items:center;justify-content:center;padding:18px;z-index:1000}.legal-overlay.hidden{display:none}.legal-modal{background:#fff;width:min(820px,100%);max-height:90vh;overflow:auto;border-radius:20px;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.22);text-align:left}.legal-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px}.legal-head h2{margin:0;font-size:24px}.legal-close{border:0;border-radius:10px;padding:9px 13px;background:#ececef;color:#222;font:inherit;font-weight:750;cursor:pointer}.legal-modal h3{margin:24px 0 8px;font-size:16px}.legal-modal p{margin:0 0 14px;color:#555;line-height:1.65}.legal-modal strong{color:#222}
+
+@media(max-width:860px){
+  .hero{grid-template-columns:1fr;padding-top:48px}.hero-copy{text-align:center}.lead{margin:0 auto}.actions{justify-content:center}.hero-offer{max-width:560px;width:100%;margin:0 auto}.grid{grid-template-columns:1fr 1fr}.pricing{grid-template-columns:1fr}.section{flex-direction:column;align-items:stretch}.section .btn{width:100%}
+}
+@media(max-width:560px){
+  .wrap{padding:18px 14px 44px}.top{grid-template-columns:1fr auto;align-items:center;gap:10px}.brand{grid-column:1/-1;grid-row:2;font-size:18px;margin-top:5px}.mark{width:31px;height:31px}.back-home{min-height:34px;padding:7px 10px;font-size:12px}.customer-login{min-height:34px;padding:7px 10px;font-size:12px}
+  .hero{padding:42px 0 26px;gap:26px}.hero h1{font-size:38px;letter-spacing:-1.5px}.lead{font-size:15px}.actions .btn{width:100%}.hero-offer{padding:22px}.hero-price{font-size:42px}
+  .grid{grid-template-columns:1fr;margin-top:12px}.pricing{padding:26px 20px}.pricing-list{grid-template-columns:1fr}.price{font-size:42px}.pricing-actions .btn{width:100%}.section{padding:24px 20px}.contact{padding:24px 18px}.contact-grid{grid-template-columns:1fr}.legal-modal{padding:20px}.legal-head{align-items:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back-home" href="../">← Zurück zu ÜbergabeCheck</a>
+    <div class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 28.5 32 9l24 19.5V55H8V28.5Z" stroke="#0D1B2A" stroke-width="5" stroke-linejoin="round"/><path d="M40 9h8v10" stroke="#0D1B2A" stroke-width="5" stroke-linecap="round"/><path d="m22 38 7 7 15-18" stroke="#22C55E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div>Übergabe<span>Check</span> Business</div></div>
+    <a class="customer-login" href="app.html">Kunden-Login →</a>
+  </div>
+
+  <main class="hero">
+    <div class="hero-copy">
+      <div class="pill">BUSINESS · FÜR UNTERNEHMEN</div>
+      <h1>Übergaben &amp; Rücknahmen verwalten.<br><em>Alles an einem Ort.</em></h1>
+      <p class="lead">Objekte, Wohnungen, Übergaben, Rücknahmen und Mängel zentral verwalten. ÜbergabeCheck Business verbindet die digitale Dokumentation mit einer übersichtlichen Verwaltungsoberfläche.</p>
+      <div class="actions">
+        <a class="btn primary" href="app.html?register=1">14 Tage kostenlos testen →</a>
+        <a class="btn secondary" href="#preis">Alle Leistungen ansehen</a>
+      </div>
+    </div>
+
+    <aside class="hero-offer">
+      <div class="hero-offer-label">KLARER FESTPREIS</div>
+      <div class="hero-price">29,99 € <small>/ Monat</small></div>
+      <div class="hero-price-copy">Unabhängig davon, wie viele Übergaben oder Rücknahmen du durchführst.</div>
+      <ul>
+        <li>Unbegrenzte Objekte &amp; Wohnungen</li>
+        <li>Inhaber + bis zu 10 Mitarbeiter inklusive</li>
+        <li>Gespeicherte Übergaben &amp; Rücknahmen jederzeit abrufbar</li>
+      </ul>
+      <div class="hero-trial">14 Tage kostenlos · keine Zahlungsdaten für den Test · keine automatische Verlängerung</div>
+      <a class="btn primary" href="app.html?register=1">Jetzt kostenlos testen →</a>
+    </aside>
+  </main>
+
+  <div class="grid">
+    <div class="card"><strong>Objekte verwalten</strong><span>Gebäude und Liegenschaften übersichtlich anlegen und organisieren.</span></div>
+    <div class="card"><strong>Wohnungen zuordnen</strong><span>Einheiten direkt den passenden Objekten zuweisen.</span></div>
+    <div class="card"><strong>Übergaben &amp; Rücknahmen speichern</strong><span>Vorgänge dauerhaft je Wohnung dokumentieren und wieder öffnen.</span></div>
+    <div class="card"><strong>Mängel im Blick behalten</strong><span>Festgestellte Mängel zentral anzeigen und weiterverfolgen.</span></div>
+  </div>
+
+  <section class="pricing" id="preis">
+    <div>
+      <div class="pricing-kicker">Ein Tarif. Alles drin.</div>
+      <h2>ÜbergabeCheck Business</h2>
+      <p class="pricing-copy">Für Hausverwaltungen, Vermieter und Unternehmen, die Wohnungsübergaben und -rücknahmen dauerhaft digital organisieren möchten.</p>
+      <div class="price">29,99 € <small>/ Monat</small></div>
+      <div class="price-sub">Fester Preis – unabhängig von der Anzahl der Übergaben und Rücknahmen.</div>
+      <div class="trial">14 Tage kostenlos testen · keine Zahlungsdaten erforderlich · keine automatische Verlängerung</div>
+      <div class="pricing-actions">
+        <a class="btn primary" href="app.html?register=1">14 Tage kostenlos testen →</a>
+        <div class="pricing-note">Danach nur bei aktiver Buchung 29,99 € / Monat.<br>Jederzeit zum Ende des Abrechnungszeitraums kündbar.</div>
+      </div>
+    </div>
+    <div class="pricing-list-wrap">
+      <ul class="pricing-list">
+        <li>Unbegrenzte Objekte &amp; Wohnungen</li>
+        <li>Digitale Übergabe- &amp; Rücknahmeprotokolle</li>
+        <li>Fotos &amp; Mängeldokumentation</li>
+        <li>Digitale Unterschriften</li>
+        <li>PDF-Export &amp; E-Mail-Versand</li>
+        <li>Eigener Firmenbriefkopf</li>
+        <li>Teamverwaltung mit Rollen</li>
+        <li>Inhaber + bis zu 10 Mitarbeiter</li>
+        <li>Gespeicherte vergangene Vorgänge</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section">
+    <div><h2>Die kostenlose Version bleibt kostenlos.</h2><p>Für einzelne private Wohnungsübergaben kannst du weiterhin die kostenlose Version nutzen. Business ist für regelmäßige Übergaben und Rücknahmen sowie die zentrale Verwaltung gedacht.</p></div>
+    <a class="btn secondary" href="../">Kostenlose Version öffnen →</a>
+  </section>
+
+  <section class="contact" id="kontakt">
+    <h2>Kontakt</h2>
+    <p>Fragen zu ÜbergabeCheck Business? Schreib uns direkt über das Kontaktformular. Wir antworten an die von dir angegebene E-Mail-Adresse.</p>
+    <form id="businessContactForm" onsubmit="sendBusinessContact(event)">
+      <div class="contact-grid">
+        <div><label for="contactName">Name *</label><input id="contactName" name="name" maxlength="120" autocomplete="name" required></div>
+        <div><label for="contactCompany">Unternehmen</label><input id="contactCompany" name="company" maxlength="160" autocomplete="organization"></div>
+        <div class="contact-full"><label for="contactEmail">E-Mail-Adresse *</label><input id="contactEmail" name="email" type="email" maxlength="254" autocomplete="email" required></div>
+        <div class="contact-full"><label for="contactMessage">Nachricht *</label><textarea id="contactMessage" name="message" maxlength="5000" minlength="10" required></textarea></div>
+        <div class="contact-hp" aria-hidden="true"><label for="contactWebsite">Website</label><input id="contactWebsite" name="website" tabindex="-1" autocomplete="off"></div>
+      </div>
+      <div class="contact-actions"><button class="btn primary" id="contactSubmit" type="submit">Nachricht senden →</button><span class="contact-status" id="contactStatus" aria-live="polite"></span></div>
+      <p class="pricing-note" style="margin-top:12px;color:#777">Mit dem Absenden werden deine Angaben ausschließlich zur Bearbeitung deiner Anfrage verarbeitet. Details findest du in der <a href="app.html#datenschutz">Datenschutzerklärung</a>.</p>
+    </form>
+  </section>
+
+  <div class="footer">ÜbergabeCheck Business · <a href="app.html#impressum">Impressum</a> · <a href="app.html#datenschutz">Datenschutz</a> · <a href="app.html#agb">AGB</a> · <a href="app.html#avv">AVV</a> · <a href="mailto:info@uebergabe-check.de">info@uebergabe-check.de</a></div>
+</div>
+
+<div class="legal-overlay hidden" id="impressumOverlay" role="presentation" onclick="if(event.target===this) closeLegal('impressum')">
+  <div class="legal-modal" role="dialog" aria-modal="true" aria-labelledby="impressumTitle">
+    <div class="legal-head"><h2 id="impressumTitle">Impressum</h2><button class="legal-close" type="button" onclick="closeLegal('impressum')">Schließen</button></div>
+    <h3>Angaben gemäß § 5 DDG</h3>
+    <p><strong>Sven Mettmann / ÜbergabeCheck</strong><br>Weiherstraße 30<br>89522 Heidenheim an der Brenz</p>
+    <h3>Kontakt</h3>
+    <p>E-Mail: <a href="mailto:info@uebergabe-check.de">info@uebergabe-check.de</a><br>Kontaktformular: <a href="#kontakt" onclick="closeLegal('impressum')">direkt online schreiben</a></p>
+    <h3>Verantwortlich für den Inhalt</h3>
+    <p>Sven Mettmann / ÜbergabeCheck<br>Weiherstraße 30<br>89522 Heidenheim an der Brenz</p>
+  </div>
+</div>
+
+<div class="legal-overlay hidden" id="datenschutzOverlay" role="presentation" onclick="if(event.target===this) closeLegal('datenschutz')">
+  <div class="legal-modal" role="dialog" aria-modal="true" aria-labelledby="datenschutzTitle">
+    <div class="legal-head"><h2 id="datenschutzTitle">Datenschutzerklärung – Business-Startseite</h2><button class="legal-close" type="button" onclick="closeLegal('datenschutz')">Schließen</button></div>
+    <p><strong>Stand: 27. August 2026</strong></p>
+    <p>Für Registrierung, Business-Anwendung, Vertragsabwicklung, Stripe, Supabase und weitere dort eingesetzte Dienste gilt die ausführliche <a href="app.html#datenschutz">Datenschutzerklärung von ÜbergabeCheck Business</a>.</p>
+    <h3>1. Verantwortlicher</h3>
+    <p>Verantwortlich für die Verarbeitung personenbezogener Daten ist:<br><br><strong>Sven Mettmann</strong><br>Weiherstraße 30<br>89522 Heidenheim an der Brenz<br><br>E-Mail: <strong>info@uebergabe-check.de</strong></p>
+    <h3>2. ÜbergabeCheck Business</h3>
+    <p>ÜbergabeCheck Business ist eine Webanwendung zur zentralen Verwaltung von Objekten, Wohnungen, Wohnungsübergaben und festgestellten Mängeln. Für die Nutzung eines Unternehmenskontos werden Anmelde- und Kontodaten verarbeitet. Angaben aus gespeicherten Übergaben werden dem jeweiligen Unternehmenskonto und der zugehörigen Wohnung zugeordnet.</p>
+    <h3>3. Speicherung und Verarbeitung</h3>
+    <p>Während einer laufenden Übergabe kann ein technischer Entwurf vorübergehend im Browser des verwendeten Geräts gespeichert werden. Dauerhaft gespeicherte Objekte, Wohnungen, Übergaben, Mängelangaben, Fotos und Unterschriften werden im Business-Bereich zentral gespeichert und dem jeweiligen Unternehmenskonto zugeordnet.</p>
+    <h3>4. Authentifizierung und Datenbank mit Supabase</h3>
+    <p>Für Registrierung, Anmeldung und die zentrale Speicherung der Business-Daten verwenden wir <strong>Supabase</strong>. Dabei werden insbesondere Kontodaten sowie die vom angemeldeten Unternehmen angelegten Objekte, Wohnungen und Übergabedaten verarbeitet.</p>
+    <h3>5. Webanalyse in der Business-Anwendung</h3>
+    <p>In der eigentlichen Business-Anwendung verwenden wir <strong>Umami Cloud</strong>, um die Nutzung der Anwendung auszuwerten und zu verbessern. Dabei werden keine Inhalte von Übergabeprotokollen, Namen, Adressen, Fotos oder Unterschriften an Umami übermittelt. Auf dieser vorgeschalteten Business-Startseite ist derzeit keine Umami-Webanalyse eingebunden.</p>
+    <h3>6. Hosting durch STRATO</h3>
+    <p>Diese Website wird über <strong>STRATO</strong> bereitgestellt. Beim Aufruf können technisch notwendige Verbindungsdaten wie IP-Adresse, Zeitpunkt des Zugriffs, aufgerufene Ressource sowie Browser- und Geräteinformationen durch den Hostinganbieter verarbeitet werden. Dies dient der sicheren und zuverlässigen Bereitstellung der Website.</p>
+    <h3>7. Rechtsgrundlage</h3>
+    <p>Soweit personenbezogene Daten verarbeitet werden, erfolgt die Verarbeitung insbesondere zur Bereitstellung und Absicherung der Website und Anwendung sowie – soweit erforderlich – auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO. Weitere Rechtsgrundlagen können sich abhängig von der konkreten Nutzung und dem Vertragsverhältnis ergeben.</p>
+    <h3>8. Kontaktformular</h3>
+    <p>Wenn du das Kontaktformular nutzt, verarbeiten wir deinen Namen, deine E-Mail-Adresse, optional dein Unternehmen und den Inhalt deiner Nachricht, um deine Anfrage zu bearbeiten und zu beantworten. Die Verarbeitung erfolgt je nach Inhalt der Anfrage zur Durchführung vorvertraglicher oder vertraglicher Maßnahmen gemäß Art. 6 Abs. 1 lit. b DSGVO oder auf Grundlage unseres berechtigten Interesses an der Bearbeitung geschäftlicher Anfragen gemäß Art. 6 Abs. 1 lit. f DSGVO. Für die technische Übermittlung der Kontaktanfrage nutzen wir <strong>Resend (Plus Five Five, Inc., USA)</strong>. Für Übermittlungen in die USA stützt Resend seine Datenschutzunterlagen unter anderem auf das EU-U.S. Data Privacy Framework und Standardvertragsklauseln. Anfragen werden nur so lange gespeichert, wie dies für Bearbeitung, Nachweis und gegebenenfalls gesetzliche Aufbewahrungspflichten erforderlich ist.</p>
+    <h3>9. Deine Rechte</h3>
+    <p>Du hast nach Maßgabe der DSGVO insbesondere das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch gegen bestimmte Verarbeitungen. Außerdem besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbehörde.</p>
+    <h3>10. Änderungen</h3>
+    <p>Diese Datenschutzerklärung kann angepasst werden, wenn sich die technische Ausgestaltung oder die eingesetzten Dienste ändern.</p>
+  </div>
+</div>
+
+<script>
+const CONTACT_ENDPOINT="https://fkirkglhcpltxlcsozmd.supabase.co/functions/v1/contact-message";
+async function sendBusinessContact(event){
+  event.preventDefault();
+  const form=event.currentTarget;
+  const button=document.getElementById('contactSubmit');
+  const status=document.getElementById('contactStatus');
+  if(button){button.disabled=true;button.textContent='Wird gesendet …';}
+  if(status){status.className='contact-status';status.textContent='';}
+  try{
+    const fd=new FormData(form);
+    const response=await fetch(CONTACT_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:fd.get('name'),company:fd.get('company'),email:fd.get('email'),message:fd.get('message'),website:fd.get('website')})});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data?.error||'Nachricht konnte nicht gesendet werden.');
+    form.reset();
+    if(status){status.className='contact-status ok';status.textContent='Danke! Deine Nachricht wurde gesendet.';}
+  }catch(error){
+    if(status){status.className='contact-status error';status.textContent=error?.message||'Nachricht konnte gerade nicht gesendet werden.';}
+  }finally{
+    if(button){button.disabled=false;button.textContent='Nachricht senden →';}
+  }
+}
+function openLegal(type){
+  const id=type==='impressum'?'impressumOverlay':'datenschutzOverlay';
+  document.getElementById(id)?.classList.remove('hidden');
+  document.body.style.overflow='hidden';
+}
+function closeLegal(type){
+  const id=type==='impressum'?'impressumOverlay':'datenschutzOverlay';
+  document.getElementById(id)?.classList.add('hidden');
+  document.body.style.overflow='';
+}
+document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape') return;
+  document.getElementById('impressumOverlay')?.classList.add('hidden');
+  document.getElementById('datenschutzOverlay')?.classList.add('hidden');
+  document.body.style.overflow='';
+});
+</script>
+</body>
+</html>
