@@ -505,11 +505,11 @@
 <label>Art des Vorgangs</label>
 <div class="transfer-type-options">
 <label class="transfer-type-option">
-<input type="radio" name="transferType" value="Wohnungsübergabe" checked>
+<input id="transferTypeHandover" type="radio" name="transferType" value="handover" checked onchange="selectPendingTransferType('handover')">
 <span><strong>Übergabe / Einzug</strong><small>Dokumentation bei Übergabe der Wohnung an den Mieter.</small></span>
 </label>
 <label class="transfer-type-option">
-<input type="radio" name="transferType" value="Wohnungsrücknahme">
+<input id="transferTypeReturn" type="radio" name="transferType" value="return" onchange="selectPendingTransferType('return')">
 <span><strong>Rücknahme / Auszug</strong><small>Dokumentation bei Abnahme und Rückgabe der Wohnung.</small></span>
 </label>
 </div>
@@ -1128,9 +1128,24 @@ let meterPhotos={electric:[],water:[],gas:[]};
 let storedSignatures={tenant:"",landlord:""};
 let storedSignatureDetails={tenantPlace:"",landlordPlace:"",date:""};
 window.currentBusinessTransferType="Wohnungsübergabe";
+let pendingBusinessTransferType="Wohnungsübergabe";
 
 function normalizeTransferType(type){
-  return type==="Wohnungsrücknahme" ? "Wohnungsrücknahme" : "Wohnungsübergabe";
+  const value=String(type||"").trim().toLowerCase();
+  if(value==="return" || value==="ruecknahme" || value==="rücknahme" || value==="wohnungsrücknahme" || value==="wohnungsruecknahme") return "Wohnungsrücknahme";
+  return "Wohnungsübergabe";
+}
+function selectPendingTransferType(type){
+  pendingBusinessTransferType=normalizeTransferType(type);
+  const handover=document.getElementById("transferTypeHandover");
+  const returnRadio=document.getElementById("transferTypeReturn");
+  if(handover) handover.checked=pendingBusinessTransferType==="Wohnungsübergabe";
+  if(returnRadio) returnRadio.checked=pendingBusinessTransferType==="Wohnungsrücknahme";
+}
+function getPendingTransferType(){
+  if(document.getElementById("transferTypeReturn")?.checked) return "Wohnungsrücknahme";
+  if(document.getElementById("transferTypeHandover")?.checked) return "Wohnungsübergabe";
+  return normalizeTransferType(pendingBusinessTransferType);
 }
 function getTransferWording(type=window.currentBusinessTransferType){
   const normalized=normalizeTransferType(type);
@@ -2837,7 +2852,8 @@ async function startApartmentTransfer(requestedType){
 
   window.currentBusinessApartmentId=apartment.id;
   window.currentBusinessTransferId=transfer.id;
-  window.currentBusinessTransferType=normalizeTransferType(transfer.type||transferType);
+  window.currentBusinessTransferType=transferType;
+  applyTransferTypeUi();
   window.currentBusinessTransferCreatedByName=transfer.created_by_name||"";
 
   if(!apartmentTransfers[apartment.id]) apartmentTransfers[apartment.id]=[];
@@ -4020,8 +4036,7 @@ function startBusinessTransfer(){
   const apartmentSelect=document.getElementById("transferApartmentSelect");
   if(!modal || !objectSelect || !apartmentSelect) return;
 
-  const defaultType=document.querySelector('input[name="transferType"][value="Wohnungsübergabe"]');
-  if(defaultType) defaultType.checked=true;
+  selectPendingTransferType("handover");
 
   objectSelect.innerHTML='<option value="">Objekt auswählen …</option>' +
     businessObjects.map(o=>`<option value="${escAttr(o.id)}">${esc(o.name)}</option>`).join("");
@@ -4060,7 +4075,7 @@ async function confirmTransferStart(){
   if(!requireBusinessWriteAccess())return;
   const objectId=document.getElementById("transferObjectSelect")?.value;
   const apartmentId=document.getElementById("transferApartmentSelect")?.value;
-  const transferType=normalizeTransferType(document.querySelector('input[name="transferType"]:checked')?.value);
+  const transferType=getPendingTransferType();
 
   if(!objectId){
     alert("Bitte zuerst ein Objekt auswählen.");
