@@ -52,6 +52,8 @@
       const fields=snapshot?.fields||{};
       return {
         transferId:previous.id,
+        address:String(fields.address||""),
+        tenant:String(fields.tenant||snapshot?.tenantName||""),
         selectedRooms:Array.isArray(snapshot?.selectedRooms)?snapshot.selectedRooms.filter(Boolean):[],
         customRooms:Array.isArray(snapshot?.customRooms)?snapshot.customRooms.filter(Boolean):[],
         meterNumbers:{
@@ -68,6 +70,14 @@
 
   function applyPreviousHandoverDefaults(defaults){
     if(!defaults)return false;
+
+    [["address",defaults.address],["tenant",defaults.tenant]].forEach(([id,value])=>{
+      const input=document.getElementById(id);
+      if(input&&value){
+        input.value=value;
+        input.dispatchEvent(new Event("input",{bubbles:true}));
+      }
+    });
 
     if(defaults.selectedRooms.length){
       selectedRooms=[...defaults.selectedRooms];
@@ -100,7 +110,7 @@
     });
 
     if(typeof saveDraft==="function")saveDraft();
-    return defaults.selectedRooms.length>0||Object.values(defaults.meterNumbers||{}).some(Boolean);
+    return !!defaults.address||!!defaults.tenant||defaults.selectedRooms.length>0||Object.values(defaults.meterNumbers||{}).some(Boolean);
   }
 
   window.startBusinessTransfer=function(){
@@ -223,18 +233,22 @@
           const note=document.createElement("span");
           note.className="return-import-note";
           note.style.cssText="font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;color:#666;margin-left:auto;";
-          note.textContent="Räume & Zählernummern aus letzter Übergabe übernommen";
+          note.textContent="Mieter, Adresse, Räume & Zählernummern aus letzter Übergabe übernommen";
           context.appendChild(note);
         }
       }
     }
 
-    const addressInput=document.getElementById("address");
-    if(addressInput&&!addressInput.value){
-      const address=objectAddress(object);
-      if(address){
-        addressInput.value=address;
-        addressInput.dispatchEvent(new Event("input",{bubbles:true}));
+    // Adresse nur bei Rücknahmen automatisch vorbelegen.
+    // Gibt es keine gespeicherte Adresse aus der Übergabe, dient die Objektadresse als Rückfall.
+    if(isReturn){
+      const addressInput=document.getElementById("address");
+      if(addressInput&&!addressInput.value){
+        const address=objectAddress(object);
+        if(address){
+          addressInput.value=address;
+          addressInput.dispatchEvent(new Event("input",{bubbles:true}));
+        }
       }
     }
   };
