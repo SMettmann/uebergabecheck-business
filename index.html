@@ -384,6 +384,24 @@
   .global-dashboard-nav:hover{background:#2a2a2a}
   @media(max-width:700px){.global-dashboard-nav{top:10px;left:10px;padding:9px 12px;font-size:12px}}
   @media print{.global-dashboard-nav{display:none!important}}
+
+  /* Ruhiger, klarer Business-Einstieg */
+  .business-login{min-height:calc(100vh - 88px);padding:54px 0 70px;justify-content:flex-start}
+  .login-card{max-width:520px;border-radius:18px;padding:34px 38px;box-shadow:none;border:1px solid #dedfe2}
+  .login-brand{margin-bottom:30px}
+  .business-pill{background:transparent;border:0;padding:0;border-radius:0;font-size:11px;letter-spacing:1.4px;color:#777;margin-bottom:10px}
+  .login-card h1{font-size:30px;margin-bottom:10px}
+  .login-pricing-summary{background:transparent;border:0;border-radius:0;padding:0 0 22px;margin:0 0 24px;border-bottom:1px solid #e6e7e9}
+  .login-pricing-summary strong{font-size:15px;margin-bottom:5px}
+  .login-pricing-summary span{font-size:12.5px;line-height:1.55}
+  .login-customer-title{font-size:17px;margin-bottom:5px}
+  .login-lead{margin-bottom:18px}
+  .login-note{border-top:1px solid #e6e7e9;padding-top:20px;margin-top:24px}
+  .register-link{display:inline-flex;text-decoration:none;background:#f0f1f3;border-radius:10px;padding:10px 14px;margin-top:9px;font-weight:800}
+  .legal-checks{background:transparent;padding:0;border:0;margin-top:20px}
+  .legal-check{font-size:11.5px;color:#686b70}
+  .site-footer.login-legal{max-width:520px;color:#929499}
+  @media(max-width:700px){.business-login{padding-top:22px}.login-card{padding:26px 20px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script data-domains="uebergabe-check.de" data-website-id="a4c18987-08e8-480c-a3e7-a19b50232683" defer="" src="https://cloud.umami.is/script.js"></script>
@@ -403,13 +421,13 @@
 <div>Übergabe<span>Check</span></div>
 </div>
 <div class="business-pill">BUSINESS</div>
-<h1>ÜbergabeCheck Business</h1>
+<h1>Business-Bereich</h1>
+<p class="login-lead">Objekte, Wohnungen, Übergaben und Rückgaben zentral verwalten.</p>
 <div class="login-pricing-summary">
-  <strong>14 Tage kostenlos testen</strong>
-  <span>Danach bei aktiver Buchung 29,99 € / Monat · Inhaber + bis zu 10 Mitarbeiter inklusive · jederzeit kündbar · keine automatische Umwandlung</span>
+  <strong>29,99 € / Monat</strong>
+  <span>14 Tage unverbindlich testen · keine Zahlungsdaten im Test · keine automatische Verlängerung · bis zu 10 Mitarbeiter inklusive</span>
 </div>
-<h2 class="login-customer-title">Bereits Kunde? Einloggen</h2>
-<p class="login-lead">Melde dich an, um deine Objekte, Wohnungen und Übergaben zentral zu verwalten.</p>
+<h2 class="login-customer-title">Anmelden</h2>
 <form onsubmit="businessLogin(event)">
 <label for="businessEmail">E-Mail-Adresse</label>
 <input autocomplete="email" id="businessEmail" placeholder="name@unternehmen.de" required="" type="email"/>
@@ -424,8 +442,8 @@
         Bitte E-Mail-Adresse und Passwort eingeben.
       </div>
 <div class="login-note">
-        Noch kein Unternehmenskonto?<br/>
-<a class="register-link" onclick="showRegistration()">Unternehmen registrieren</a>
+        ÜbergabeCheck Business ausprobieren<br/>
+<a class="register-link" onclick="showRegistration()">14 Tage unverbindlich testen →</a>
 
 </div>
 <div class="register-form" id="passwordResetRequestForm">
@@ -454,9 +472,9 @@
 <div class="login-error hidden" id="passwordUpdateError"></div>
 </div>
 <div class="register-form" id="registrationForm">
-<div class="business-pill" style="margin-top:24px;">14 TAGE KOSTENLOS</div>
-<h2 style="font-size:24px;margin:0 0 8px;">Kostenlosen Test starten</h2>
-<p class="login-lead">Erstelle dein Testkonto für ÜbergabeCheck Business. 14 Tage kostenlos, keine Zahlungsdaten erforderlich und keine automatische Verlängerung.</p>
+<div class="business-pill" style="margin-top:24px;">TESTZUGANG</div>
+<h2 style="font-size:24px;margin:0 0 8px;">Business 14 Tage testen</h2>
+<p class="login-lead">Keine Zahlungsdaten erforderlich. Der Test endet automatisch, wenn du anschließend nicht aktiv buchst.</p>
 <form onsubmit="businessRegister(event)">
 <label for="companyName">Unternehmen</label>
 <input autocomplete="organization" id="companyName" placeholder="z. B. Müller Hausverwaltung GmbH" required="" type="text"/>
@@ -472,7 +490,7 @@
   <label class="legal-check"><input id="registrationB2B" required type="checkbox"/><span>Ich bestätige, dass ich als <strong>Unternehmer im Sinne des § 14 BGB</strong> handle, ÜbergabeCheck Business ausschließlich für meine gewerbliche oder selbständige berufliche Tätigkeit nutze und <strong>berechtigt bin, diese Vereinbarungen für das Unternehmen abzuschließen</strong>.</span></label>
   <label class="legal-check"><input id="registrationLegal" required type="checkbox"/><span>Ich akzeptiere die <button class="legal-inline-link" type="button" onclick="event.preventDefault();event.stopPropagation();openAGB()">AGB</button>, schließe den <button class="legal-inline-link" type="button" onclick="event.preventDefault();event.stopPropagation();openAVV()">Auftragsverarbeitungsvertrag (AVV)</button> ab und habe die <button class="legal-inline-link" type="button" onclick="event.preventDefault();event.stopPropagation();openDatenschutz()">Datenschutzerklärung</button> zur Kenntnis genommen.</span></label>
 </div>
-<button class="primary login-button" type="submit">Kostenlosen Test starten →</button>
+<button class="primary login-button" type="submit">Testzugang erstellen →</button>
 </form>
 <div class="login-error hidden" id="registrationError"></div>
 <a class="back-login" onclick="showLogin()">← Zurück zum Login</a>
